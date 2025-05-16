@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Database credentials
-DB_NAME="highvoltage"
+DB_NAME="HV_analysis_ds"
 DB_USER="postgres"
 DB_PASS="postgres"
 
