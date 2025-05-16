@@ -42,9 +42,6 @@ df = df.iloc[10:]
 print(df.head(10))
 
 
-df = df["DROP TABLE"].str.split('|', expand=True)
-print(df.head(10))
-
 df.rename(columns={0: 'time', 1: 'device_name', 2: 'key', 3: 'value'}, inplace=True)
 
 
