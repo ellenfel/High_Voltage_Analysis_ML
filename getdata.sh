@@ -25,7 +25,6 @@ CREATE TABLE veri AS (
     FROM ts_kv
     JOIN device ON device.Id = ts_kv.entity_id
     JOIN device_profile ON device.device_profile_id = device_profile.id
---    WHERE random() < 0.01
     WHERE device_profile.name != 'default' -- exclude 'UG-67' Device and only use specified profile
 );
 
