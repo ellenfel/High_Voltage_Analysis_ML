@@ -16,7 +16,7 @@ CREATE TABLE veri AS (
     JOIN device ON device.Id = ts_kv.entity_id
     JOIN device_profile ON device.device_profile_id = device_profile.id
 --    WHERE random() < 0.01
-    AND device_profile.name = 'I-Link Box' -- exclude 'UG-67' Device and only use specified profile
+    WHERE device_profile.name = 'I-Link Box'
 );
 
 ALTER TABLE veri ADD COLUMN merged_column varchar(512); -- Adjust the length as needed
