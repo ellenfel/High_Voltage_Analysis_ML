@@ -4,7 +4,7 @@
 DB_NAME="HV_analysis_ds"
 DB_USER="postgres"
 DB_PASS="postgres"
-OUTPUT_FILE="/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv.csv"
+OUTPUT_FILE="/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv_ts.csv"
 
 # Setting environment variables for PostgreSQL
 export PGPASSWORD=$DB_PASS
@@ -29,7 +29,6 @@ TOTAL_RECORDS=$(psql -t -c "
     FROM ts_kv
     JOIN device ON device.Id = ts_kv.entity_id
     JOIN device_profile ON device.device_profile_id = device_profile.id
-    WHERE device_profile.name = 'I-Link Box'
 ")
 echo "Total records to process: $TOTAL_RECORDS"
 
@@ -40,6 +39,7 @@ CREATE TABLE veri AS (
     SELECT
         device.Id,
         device.name AS devName,
+        device_profile.name AS device_profile,
         ts_kv.ts,
         ts_kv.key AS telemetry,
         CONCAT(
@@ -74,7 +74,8 @@ echo "Exporting data to CSV..."
 time psql -c "
 COPY (
     SELECT
-        to_timestamp(ts / 1000) AS ts,
+        ts,
+        device_profile,
         devName,
         key,
         merged_column
