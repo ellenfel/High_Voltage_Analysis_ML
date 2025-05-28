@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# %%
 
 # importing libs# importing libs
 import pandas as pd
@@ -37,32 +37,37 @@ pd.set_option('display.max_columns', 32)
 
 
 # reading data
-df = pd.read_csv('../data/hv.csv')
-df = df.iloc[10:]
-print(df.head(10))
+df = pd.read_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv_ts.csv')
+
+#df = df.iloc[10:] #df is not ready for slicing, it has no header and the first 10 rows are not useful
+
+# renaming columns
+df.rename(columns={0: 'time', 1: 'device_profile', 2: 'device_name', 3: 'key', 4: 'value'}, inplace=True)
+
+# sample the first 100 rows for quick analysis
+df_sample = df.head(100) 
 
 
-df.rename(columns={0: 'time', 1: 'device_name', 2: 'key', 3: 'value'}, inplace=True)
+#gets all the keys other than error
+unique_values = df['key'].unique()
+unique_values = [value for value in unique_values if 'error' not in str(value)]
+
+# filtering out rows where 'key' contains 'error'
+df = df[~df['key'].str.contains('error', case=False, na=False)]
 
 
+# pivoting the dataframe to have 'key' as columns and 'value' as values
+values_to_exclude = ['devName', 'devEUI', 'time', 'snr', 'rssi', 'protocol_version', 'firmware_version', 'hardware_version', 'sn', 'active', 'images_urls', 'water_images_urls', 'serialnumber', 'Location']
+column_name_to_check = 'key'
+
+# Filter out rows where the value in the 'key' column is not in the list of values to exclude
+df = df.sample(frac=0.1)  # Use 10% of the data for testing
+df = df[~df[column_name_to_check].isin(values_to_exclude)]
+df['value'] = df['value'].astype('float64')
+
+#for sampling
 df_sample = df.head(10000)
-
-unique_values = df_sample['key'].unique()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+unique_values = df['key'].unique()
 
 
 
