@@ -39,16 +39,12 @@ pd.set_option('display.max_columns', 32)
 # reading data
 df = pd.read_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv_ts.csv')
 
-#df = df.iloc[10:] #df is not ready for slicing, it has no header and the first 10 rows are not useful
 
 # renaming columns
-df.rename(columns={0: 'time', 1: 'device_profile', 2: 'device_name', 3: 'key', 4: 'value'}, inplace=True)
-
-# sample the first 100 rows for quick analysis
-df_sample = df.head(100) 
+df.rename(columns={'ts': 'time', 'device_profile': 'device_profile', 'devname': 'device_name', 'key': 'key', 'merged_column': 'value'}, inplace=True)
 
 
-#gets all the keys other than error
+#gets all the keys other than error(no key is error in current db)
 unique_values = df['key'].unique()
 unique_values = [value for value in unique_values if 'error' not in str(value)]
 
@@ -63,16 +59,13 @@ column_name_to_check = 'key'
 # Filter out rows where the value in the 'key' column is not in the list of values to exclude
 df = df.sample(frac=0.1)  # Use 10% of the data for testing
 df = df[~df[column_name_to_check].isin(values_to_exclude)]
+
+df_sample = df.head(100)
+
 df['value'] = df['value'].astype('float64')
 
 #for sampling
 df_sample = df.head(10000)
 unique_values = df['key'].unique()
 
-
-
-
-
-
-
-
+#df = df.iloc[10:] #df is not ready for slicing, it has no header and the first 10 rows are not useful
