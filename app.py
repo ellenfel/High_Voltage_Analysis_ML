@@ -62,10 +62,48 @@ df = df[~df[column_name_to_check].isin(values_to_exclude)]
 
 df_sample = df.head(100)
 
-df['value'] = df['value'].astype('float64')
 
 #for sampling
 df_sample = df.head(10000)
 unique_values = df['key'].unique()
 
 #df = df.iloc[10:] #df is not ready for slicing, it has no header and the first 10 rows are not useful
+#df['value'] = df['value'].astype('float64')
+
+
+
+# Method 1: Using pivot_table (recommended for potential duplicate handling)
+df_pivoted = df.pivot_table(
+    index=['time', 'device_profile', 'device_name'], 
+    columns='key', 
+    values='value', 
+    aggfunc='first'  # Use 'first' in case of duplicates, or 'mean' for numeric data
+).reset_index()
+
+# Flatten the column names (remove the hierarchical structure)
+df_pivoted.columns.name = None
+
+# Method 2: Using pivot (simpler but will fail if there are duplicates)
+# df_pivoted = df.pivot(
+#     index=['time', 'device_profile', 'device_name'], 
+#     columns='key', 
+#     values='value'
+# ).reset_index()
+
+# Optional: Add suffix to key column names for clarity
+df_pivoted.columns = [col if col in ['time', 'device_profile', 'device_name'] 
+                     else f"{col}_value" for col in df_pivoted.columns]
+
+# Display the result
+print("Original DataFrame shape:", df.shape)
+print("Pivoted DataFrame shape:", df_pivoted.shape)
+print("\nPivoted DataFrame columns:")
+print(df_pivoted.columns.tolist())
+print("\nFirst few rows:")
+print(df_pivoted.head())
+
+# Optional: Check for any missing values after pivot
+print(f"\nMissing values per column:")
+print(df_pivoted.isnull().sum())
+
+df_sample = df_pivoted.head(10000)
