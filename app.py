@@ -42,6 +42,7 @@ df = pd.read_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv_
 
 # renaming columns
 df.rename(columns={'ts': 'time', 'device_profile': 'device_profile', 'devname': 'device_name', 'key': 'key', 'merged_column': 'value'}, inplace=True)
+df_sample = df.head(100)
 
 
 #gets all the keys other than error(no key is error in current db)
@@ -51,16 +52,17 @@ unique_values = [value for value in unique_values if 'error' not in str(value)]
 # filtering out rows where 'key' contains 'error'
 df = df[~df['key'].str.contains('error', case=False, na=False)]
 
-
-# pivoting the dataframe to have 'key' as columns and 'value' as values
+# This works
+# removing rows with specific values in the 'key' column
 values_to_exclude = ['devName', 'devEUI', 'time', 'snr', 'rssi', 'protocol_version', 'firmware_version', 'hardware_version', 'sn', 'active', 'images_urls', 'water_images_urls', 'serialnumber', 'Location']
 column_name_to_check = 'key'
 
 # Filter out rows where the value in the 'key' column is not in the list of values to exclude
-df = df.sample(frac=0.1)  # Use 10% of the data for testing
+#df_sample = df.sample(frac=0.1)  # Use 10% of the data for testing
 df = df[~df[column_name_to_check].isin(values_to_exclude)]
+unique_values = df['key'].unique()
 
-df_sample = df.head(100)
+
 
 
 #for sampling
