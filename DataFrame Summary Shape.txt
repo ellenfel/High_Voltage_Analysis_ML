@@ -1,0 +1,206 @@
+=== DataFrame Summary ===
+Shape: (3145336, 5)
+Column Names: ['time', 'device_profile', 'device_name', 'key', 'value']
+
+Data Types:
+time               int64
+device_profile    object
+device_name       object
+key               object
+value             object
+dtype: object
+
+First Few Rows:
+                   time device_profile   device_name  \
+39545421  1745054441688     I-Link Box           JB1   
+23870952  1737719172120     I-Link Box  I-Link Box 2   
+19159591  1736040975120     I-Link Box           JB2   
+3109382   1724107535134     I-Link Box  I-Link Box 2   
+30063592  1741764843648  I-Link Box EA   Substation1   
+
+                                 key        value  
+39545421                     pulse_b         13    
+23870952                     pulse_c          0    
+19159591            water_image_name     SAFE.png  
+3109382   harvesting_battery_voltage          0    
+30063592            water_image_name     SAFE.png  
+
+Missing Values Per Column:
+time              0
+device_profile    0
+device_name       0
+key               0
+value             0
+dtype: int64
+
+Unique Elements:
+Unique device profiles: 3 (['I-Link Box' 'I-Link Box EA' 'I-Link Box Tester']...)
+Unique device names: 9 (['JB1' 'I-Link Box 2' 'JB2' 'Substation1' 'I-Link Box 1']...)
+
+Number of different keys: 41
+
+
+
+
+
+1. Creating quick pivot to identify NaN locations...
+
+2. Analyzing NaN patterns...
+Columns with NaN values: 41
+  420_ir_a: 1219063/1219182 (100.0% NaN)
+  420_ir_b: 1219059/1219182 (100.0% NaN)
+  420_ir_c: 1219052/1219182 (100.0% NaN)
+  IR_A: 1114425/1219182 (91.4% NaN)
+  IR_B: 1114272/1219182 (91.4% NaN)
+  IR_C: 1114590/1219182 (91.4% NaN)
+  Water_Detection_Outside: 1112754/1219182 (91.3% NaN)
+  alarm: 1218773/1219182 (100.0% NaN)
+  current_a: 1118478/1219182 (91.7% NaN)
+  current_b: 1117739/1219182 (91.7% NaN)
+  current_c: 1117847/1219182 (91.7% NaN)
+  gpio_in_1: 1214493/1219182 (99.6% NaN)
+  gpio_in_2: 1214455/1219182 (99.6% NaN)
+  gpio_in_3: 1214439/1219182 (99.6% NaN)
+  gpio_in_4: 1214320/1219182 (99.6% NaN)
+  gpio_out_1: 1214508/1219182 (99.6% NaN)
+  gpio_out_2: 1214469/1219182 (99.6% NaN)
+  harvesting_battery_power: 1117598/1219182 (91.7% NaN)
+  harvesting_battery_voltage: 1117423/1219182 (91.7% NaN)
+  hum: 1113982/1219182 (91.4% NaN)
+  image_name: 1109662/1219182 (91.0% NaN)
+  ipec_pddata_avg_pd_a: 1117465/1219182 (91.7% NaN)
+  ipec_pddata_avg_pd_b: 1111926/1219182 (91.2% NaN)
+  ipec_pddata_avg_pd_c: 1111514/1219182 (91.2% NaN)
+  lid_switch: 1104432/1219182 (90.6% NaN)
+  mppt_batary_voltage: 1117773/1219182 (91.7% NaN)
+  mppt_panel_power: 1117767/1219182 (91.7% NaN)
+  power: 1219181/1219182 (100.0% NaN)
+  pressure: 1114510/1219182 (91.4% NaN)
+  pulse_a: 1113665/1219182 (91.3% NaN)
+  pulse_b: 1112822/1219182 (91.3% NaN)
+  pulse_c: 1117789/1219182 (91.7% NaN)
+  temp: 1113999/1219182 (91.4% NaN)
+  thermocouple_a: 1114539/1219182 (91.4% NaN)
+  thermocouple_b: 1117979/1219182 (91.7% NaN)
+  thermocouple_c: 1118272/1219182 (91.7% NaN)
+  voltage_a: 1117789/1219182 (91.7% NaN)
+  voltage_b: 1118343/1219182 (91.7% NaN)
+  voltage_c: 1118028/1219182 (91.7% NaN)
+  water_detector: 1113566/1219182 (91.3% NaN)
+  water_image_name: 1118366/1219182 (91.7% NaN)
+
+3. Sampling original values for keys with NaN issues...
+
+--- Analyzing key: 420_ir_a ---
+Unique value count: 119
+Sample values: ['  27.475627190846772 ' '  92.67779906325964 ' '  32.90828088713747 '
+ '  69.86335414161839 ' '  63.31178471942408 ' '  90.46928532087264 '
+ '  0.5206006348527858 ' '  14.526058956426391 ' '  80.30374755913041 '
+ '  86.3547964011581 ' '  5.989331759075878 ' '  8.445657403316842 '
+ '  54.21556355919511 ' '  40.91712027542318 ' '  5.918993836379971 '
+ '  35.23208059783216 ' '  18.445777427871114 ' '  46.26349552094163 '
+ '  20.35236381188471 ' '  30.979977321264595 ']
+  Problematic values found: 20
+    '  27.475627190846772 ' -> '27.475627190846772' (spaces:True, bool:False, num:True)
+    '  92.67779906325964 ' -> '92.67779906325964' (spaces:True, bool:False, num:True)
+    '  32.90828088713747 ' -> '32.90828088713747' (spaces:True, bool:False, num:True)
+    '  69.86335414161839 ' -> '69.86335414161839' (spaces:True, bool:False, num:True)
+    '  63.31178471942408 ' -> '63.31178471942408' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: 420_ir_b ---
+Unique value count: 123
+Sample values: ['  27.256420086209076 ' '  2.725846637950413 ' '  37.590996981450274 '
+ '  70.40782259085755 ' '  50.83096570043385 ' '  40.52826678467408 '
+ '  1.6804109639061315 ' '  54.80960163028473 ' '  41.098941694395016 '
+ '  99.88242738217303 ' '  27.315993705587548 ' '  96.60244556140786 '
+ '  89.82577689921295 ' '  30.020407525065572 ' '  84.10712530617953 '
+ '  6.583927714394089 ' '  54.85617255232865 ' '  7.233191522795934 '
+ '  81.05784831345008 ' '  60.813738987156405 ']
+  Problematic values found: 20
+    '  27.256420086209076 ' -> '27.256420086209076' (spaces:True, bool:False, num:True)
+    '  2.725846637950413 ' -> '2.725846637950413' (spaces:True, bool:False, num:True)
+    '  37.590996981450274 ' -> '37.590996981450274' (spaces:True, bool:False, num:True)
+    '  70.40782259085755 ' -> '70.40782259085755' (spaces:True, bool:False, num:True)
+    '  50.83096570043385 ' -> '50.83096570043385' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: 420_ir_c ---
+Unique value count: 130
+Sample values: ['  69.97538014976587 ' '  61.37619546401123 ' '  32.651623248466 '
+ '  12.429615569460516 ' '  92.05268433556726 ' '  47.29129044664406 '
+ '  71.88174310952746 ' '  59.044334078810145 ' '  87.72052001857851 '
+ '  77.69703665106141 ' '  26.19868779492157 ' '  43.844309703227054 '
+ '  45.72321526538854 ' '  34.699227488806194 ' '  42.299903087979416 '
+ '  98.2836491718631 ' '  61.34452112944949 ' '  68.69880540508112 '
+ '  90.65543663593806 ' '  16.781223319463802 ']
+  Problematic values found: 20
+    '  69.97538014976587 ' -> '69.97538014976587' (spaces:True, bool:False, num:True)
+    '  61.37619546401123 ' -> '61.37619546401123' (spaces:True, bool:False, num:True)
+    '  32.651623248466 ' -> '32.651623248466' (spaces:True, bool:False, num:True)
+    '  12.429615569460516 ' -> '12.429615569460516' (spaces:True, bool:False, num:True)
+    '  92.05268433556726 ' -> '92.05268433556726' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: IR_A ---
+Unique value count: 3
+Sample values: [' 0  ' '  0 ' ' 122  ']
+  Problematic values found: 3
+    ' 0  ' -> '0' (spaces:True, bool:True, num:True)
+    '  0 ' -> '0' (spaces:True, bool:True, num:True)
+    ' 122  ' -> '122' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: IR_B ---
+Unique value count: 3
+Sample values: [' 0  ' '  0 ' ' 122  ']
+  Problematic values found: 3
+    ' 0  ' -> '0' (spaces:True, bool:True, num:True)
+    '  0 ' -> '0' (spaces:True, bool:True, num:True)
+    ' 122  ' -> '122' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: IR_C ---
+Unique value count: 326
+Sample values: [' 0  ' '  1.48 ' '  5.09 ' '  4.63 ' '  4.25 ' '  1.46 ' '  1.34 '
+ '  1.25 ' '  1.32 ' '  48.24 ' '  1.3 ' '  4.65 ' '  1.18 ' '  1.31 '
+ '  1.28 ' '  4.87 ' '  4.83 ' '  4.67 ' '  4.49 ' '  4.71 ']
+  Problematic values found: 20
+    ' 0  ' -> '0' (spaces:True, bool:True, num:True)
+    '  1.48 ' -> '1.48' (spaces:True, bool:False, num:True)
+    '  5.09 ' -> '5.09' (spaces:True, bool:False, num:True)
+    '  4.63 ' -> '4.63' (spaces:True, bool:False, num:True)
+    '  4.25 ' -> '4.25' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: Water_Detection_Outside ---
+Unique value count: 2
+Sample values: [' 0  ' ' 12200  ']
+  Problematic values found: 2
+    ' 0  ' -> '0' (spaces:True, bool:True, num:True)
+    ' 12200  ' -> '12200' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: alarm ---
+Unique value count: 2
+Sample values: ['true   ' 'false   ']
+  Problematic values found: 2
+    'true   ' -> 'true' (spaces:True, bool:True, num:False)
+    'false   ' -> 'false' (spaces:True, bool:True, num:False)
+
+--- Analyzing key: current_a ---
+Unique value count: 703
+Sample values: ['  1.05 ' '  2.08 ' ' 0  ' '  1.15 ' '  1.11 ' '  1.1 ' '  2.9 '
+ '  2.58 ' '  3.09 ' '  2.48 ' '  2.96 ' '  1.33 ' '  1.61 ' '  1.42 '
+ '  1.7 ' '  2.7 ' '  2.64 ' '  1.57 ' '  1.5 ' '  1.68 ']
+  Problematic values found: 20
+    '  1.05 ' -> '1.05' (spaces:True, bool:False, num:True)
+    '  2.08 ' -> '2.08' (spaces:True, bool:False, num:True)
+    ' 0  ' -> '0' (spaces:True, bool:True, num:True)
+    '  1.15 ' -> '1.15' (spaces:True, bool:False, num:True)
+    '  1.11 ' -> '1.11' (spaces:True, bool:False, num:True)
+
+--- Analyzing key: current_b ---
+Unique value count: 881
+Sample values: [' 0  ' ' 1  ' '  2.04 ' '  2.01 ' '  1.13 ' '  1.17 ' '  1.75 ' '  1.25 '
+ '  2.02 ' '  0.79 ' '  1.83 ' '  1.65 ' '  1.52 ' '  1.18 ' '  1.04 '
+ '  1.86 ' '  1.94 ' '  0.9 ' '  15.11 ' '  3.02 ']
+  Problematic values found: 20
+    ' 0  ' -> '0' (spaces:True, bool:True, num:True)
+    ' 1  ' -> '1' (spaces:True, bool:True, num:True)
+    '  2.04 ' -> '2.04' (spaces:True, bool:False, num:True)
+    '  2.01 ' -> '2.01' (spaces:True, bool:False, num:True)
+    '  1.13 ' -> '1.13' (spaces:True, bool:False, num:True)

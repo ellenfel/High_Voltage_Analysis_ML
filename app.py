@@ -81,6 +81,7 @@ print("\nFirst Few Rows:")
 print(df.head())
 print("\nMissing Values Per Column:")
 print(df.isnull().sum())
+print(f"Data Type of column key: {df['key'].dtype}")
 
 # Add unique elements for device_profile and device_name
 print("\nUnique Elements:")
@@ -187,47 +188,73 @@ for key_with_nans in list(nan_analysis.keys())[:10]:  # Limit to first 10 for an
 
 
 
+def clean_value(val):
+    if pd.isna(val):
+        return val
+    val = str(val).strip()
+    try:
+        # Attempt to convert to float (or int if appropriate)
+        num_val = float(val)
+        if num_val.is_integer():
+            return int(num_val)
+        return num_val
+    except ValueError:
+        # Handle booleans
+        val_lower = val.lower()
+        if val_lower in ['true', 't', 'yes', 'on']:
+            return True
+        elif val_lower in ['false', 'f', 'no', 'off']:
+            return False
+        return val
+
+df['clean_value'] = df['value'].apply(clean_value)
+
+print("Total NaNs in DataFrame:")
+print(df.isna().sum())
+
+print("NaNs in 'value_cleaned' column:")
+print(df['value_cleaned'].isna().sum())
 
 
-# Fixing the NaN issue 
-print("--- Starting Data Cleaning and Pivoting Process ---")
 
-# --- 2. Calculate 'Before' State and NaN Count ---
-print("\n--- 2. Calculating 'Before' State ---")
-# To get a comparable "before" state, we must first attempt conversion to numeric.
-# We create a temporary numeric column from the raw values.
+
+
+
+
+
+
+
+
+
+
+
+
+# BEFORE count - original data forced to numeric
 df['value_temp_numeric'] = pd.to_numeric(df['value'].astype(str).str.strip(), errors='coerce')
-
-# Now, create the pivot table. Using pivot_table is necessary to handle potential duplicates.
 df_pivot_before = df.pivot_table(
-    index=['time', 'device_name', 'device_profile'],
-    columns='key',
-    values='value_temp_numeric',
-    aggfunc='mean'  # 'mean' aggregates any duplicates; you could also use 'first' or 'last'.
+   index=['time', 'device_name', 'device_profile'],
+   columns='key',
+   values='value_temp_numeric',
+   aggfunc='mean'
 )
-
-# This is the crucial BEFORE count
 nans_before = df_pivot_before.isnull().sum().sum()
 print(f"✅ Total NaN Count BEFORE fix: {nans_before}")
-#  Total NaN Count BEFORE fix: 33588573
-
-
-
+df.drop(columns=['value_temp_numeric'], inplace=True)
 
 # First, identify which keys should be numeric vs text
 numeric_keys = []
 text_keys = []
 
 for key in df['key'].unique():
-    key_values = df[df['key'] == key]['value'].astype(str).str.strip()
-    # Try converting a sample to see if it's mostly numeric
-    sample_converted = pd.to_numeric(key_values.head(100), errors='coerce')
-    numeric_ratio = sample_converted.notna().sum() / len(sample_converted)
-    
-    if numeric_ratio > 0.8:  # If >80% of values are numeric
-        numeric_keys.append(key)
-    else:
-        text_keys.append(key)
+   key_values = df[df['key'] == key]['value'].astype(str).str.strip()
+   # Try converting a sample to see if it's mostly numeric
+   sample_converted = pd.to_numeric(key_values.head(100), errors='coerce')
+   numeric_ratio = sample_converted.notna().sum() / len(sample_converted)
+   
+   if numeric_ratio > 0.8:  # If >80% of values are numeric
+       numeric_keys.append(key)
+   else:
+       text_keys.append(key)
 
 print(f"Numeric keys: {numeric_keys}")
 print(f"Text keys: {text_keys}")
@@ -238,34 +265,55 @@ df_text = df[df['key'].isin(text_keys)].copy()
 
 # Clean and convert only numeric data
 df_numeric['value_clean_numeric'] = pd.to_numeric(
-    df_numeric['value'].astype(str).str.strip(), 
-    errors='coerce'
+   df_numeric['value'].astype(str).str.strip(), 
+   errors='coerce'
 )
 
 # Pivot numeric data
 df_numeric_pivot = df_numeric.pivot_table(
-    index=['time', 'device_name', 'device_profile'],
-    columns='key',
-    values='value_clean_numeric',
-    aggfunc='mean'
+   index=['time', 'device_name', 'device_profile'],
+   columns='key',
+   values='value_clean_numeric',
+   aggfunc='mean'
 )
 
 # Pivot text data (keep as text)
 df_text_pivot = df_text.pivot_table(
-    index=['time', 'device_name', 'device_profile'],
-    columns='key',
-    values='value',
-    aggfunc='first'  # Take first value for text
+   index=['time', 'device_name', 'device_profile'],
+   columns='key',
+   values='value',
+   aggfunc='first'  # Take first value for text
 )
 
 # Combine both pivots
 df_final = pd.concat([df_numeric_pivot, df_text_pivot], axis=1).reset_index()
 
+# AFTER count
 nans_after = df_final.isnull().sum().sum()
 print(f"✅ Total NaN Count AFTER proper fix: {nans_after}")
 
 
+print("Detailed NaN analysis:")
+print(f"Numeric pivot NaNs: {df_numeric_pivot.isnull().sum().sum()}")
+print(f"Text pivot NaNs: {df_text_pivot.isnull().sum().sum()}")
+print(f"Combined NaNs: {df_final.isnull().sum().sum()}")
 
+print(f"\nNumeric pivot shape: {df_numeric_pivot.shape}")
+print(f"Text pivot shape: {df_text_pivot.shape}")
+print(f"Combined shape: {df_final.shape}")
+
+# Check if the numeric cleaning actually worked
+print(f"\nNumeric data before cleaning - failed conversions:")
+df_numeric_test = df[df['key'].isin(numeric_keys)].copy()
+df_numeric_test['original_numeric'] = pd.to_numeric(df_numeric_test['value'], errors='coerce')
+df_numeric_test['cleaned_numeric'] = pd.to_numeric(df_numeric_test['value'].astype(str).str.strip(), errors='coerce')
+
+original_nans = df_numeric_test['original_numeric'].isnull().sum()
+cleaned_nans = df_numeric_test['cleaned_numeric'].isnull().sum()
+
+print(f"Original numeric NaNs: {original_nans}")
+print(f"Cleaned numeric NaNs: {cleaned_nans}")
+print(f"NaNs reduced by cleaning: {original_nans - cleaned_nans}")
 
 
 
