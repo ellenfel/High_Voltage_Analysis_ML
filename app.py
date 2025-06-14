@@ -71,6 +71,11 @@ unique_values_after = df['key'].unique()
 
 ########## SECTION 2: DATA CLEANING AND TRANSFORMATION ##########
 
+# Check for NaN values in the DataFrame
+print("=== Checking for NaN values in the DataFrame ===")
+print(f"Total NaN values in DataFrame: {df.isnull().sum().sum()}")
+
+
 # Summarize the DataFrame
 print("=== DataFrame Summary ===")
 print(f"Shape: {df.shape}")
@@ -188,37 +193,51 @@ for key_with_nans in list(nan_analysis.keys())[:10]:  # Limit to first 10 for an
 
 
 
-def clean_value(val):
-    if pd.isna(val):
-        return val
-    val = str(val).strip()
-    try:
-        # Attempt to convert to float (or int if appropriate)
-        num_val = float(val)
-        if num_val.is_integer():
-            return int(num_val)
-        return num_val
-    except ValueError:
-        # Handle booleans
-        val_lower = val.lower()
-        if val_lower in ['true', 't', 'yes', 'on']:
-            return True
-        elif val_lower in ['false', 'f', 'no', 'off']:
-            return False
-        return val
 
-df['clean_value'] = df['value'].apply(clean_value)
+# new approach to clean the 'value' column
 
-print("Total NaNs in DataFrame:")
-print(df.isna().sum())
+print(df['value'].isna().sum())
+# Step 1: Make a backup copy of the original "value" column
+df['clean_value'] = df['value']
 
-print("NaNs in 'value_cleaned' column:")
-print(df['value_cleaned'].isna().sum())
+# Step 2: Remove leading and trailing whitespace from the backup column
+df['clean_value'] = df['clean_value'].astype(str).str.strip()
 
+# Step 3: Convert the cleaned column to numeric. Non-convertible values become NaN.
+df['clean_value'] = pd.to_numeric(df['clean_value'], errors='coerce')
 
+# Step 4: Check what the conversion did by printing stats
+print("=== Clean Value Column Stats ===")
+print(f"Data type of 'clean_value': {df['clean_value'].dtype}")
+print(f"Total NaN values in 'clean_value': {df['clean_value'].isna().sum()}")
 
+# Step 5: Make a list of unique original values that were converted to NaN in 'clean_value'
+nan_values = df.loc[df['clean_value'].isna(), 'value'].astype(str).str.strip()
+nan_counts = nan_values.value_counts()
+print("Unique original values converted to NaN and their counts:")
+print(nan_counts)
 
+# Define the conversion map (all keys in lowercase for consistency)
+conversion_map = {
+    "safe.png": 0,            # safe is 0
+    "i-lb_closed.svg": 1,     # closed is 1
+    "off": 0,                 # off assumed to be 0 (false)
+    "i-lb_open.svg": 0,       # open is 0
+    "i-lb closed.png": 1,     # closed is 1
+    "i-lb open.png": 0,       # open is 0
+    "i-lb closed1.png": 1,    # closed is 1
+    "true": 1,                # true maps to 1
+    "false": 0,               # false maps to 0
+    "water alert.png": 0      # water alert is 0
+}
 
+# Create a new boolean column from the cleaned value column.
+# Ensure the cleaned column is in string format and in lowercase before mapping.
+df['boolean_value'] = df['clean_value'].astype(str).str.lower().map(conversion_map)
+
+# Check the conversion results by counting each value (including any NaNs)
+print("=== Boolean Value Column Stats ===")
+print(df['boolean_value'].value_counts(dropna=False))
 
 
 
