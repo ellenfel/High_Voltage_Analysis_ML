@@ -68,8 +68,7 @@ unique_values_after = df['key'].unique()
 #unique_values = df['key'].unique()
 
 
-
-########## SECTION 2: DATA CLEANING AND TRANSFORMATION ##########
+########## SECTION 2: DATA EXPLORATION ##########
 
 # Check for NaN values in the DataFrame
 print("=== Checking for NaN values in the DataFrame ===")
@@ -193,10 +192,13 @@ for key_with_nans in list(nan_analysis.keys())[:10]:  # Limit to first 10 for an
 
 
 
+########## SECTION 3: DATA CLEANING AND TRANSFORMATION ##########
 
-# new approach to clean the 'value' column
+# NEW APPROACH TO CLEAN THE 'value' COLUMN AND CHECK NAN VALUES
 
-print(df['value'].isna().sum())
+# Print current count of NaN values in the original "value" column
+print("Initial NaN count in 'value':", df['value'].isna().sum())
+
 # Step 1: Make a backup copy of the original "value" column
 df['clean_value'] = df['value']
 
@@ -242,7 +244,19 @@ print(df['boolean_value'].value_counts(dropna=False))
 
 
 
+# Verify conversion for specific problematic values
+# Create a temporary lowercased version of clean_value for robust matching
+df['clean_value_lower'] = df['clean_value'].astype(str).str.lower()
 
+# Define the values to check (lowercase)
+values_to_check = ["i-lb_closed.svg", "safe.png"]
+
+# Filter rows where the cleaned value matches these problematic values
+filtered_test = df[df['clean_value_lower'].isin(values_to_check)][['value', 'clean_value', 'boolean_value']]
+
+# Print the filtered rows to verify if the boolean conversion worked as expected
+print("Filtered test rows for conversion:")
+print(filtered_test)
 
 
 
