@@ -36,32 +36,41 @@ plt.style.use('fivethirtyeight')
 # %matplotlib inline
 pd.set_option('display.max_columns', 32)
 
-# reading data
-df = pd.read_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv_ts.csv')
 
-# renaming columns
-df.rename(columns={'ts': 'time', 'device_profile': 'device_profile', 'devname': 'device_name', 'key': 'key', 'merged_column': 'value'}, inplace=True)
-df_sample = df.head(100)
+def process_hv_data():
+    import pandas as pd
 
-#gets all the keys other than error(no key is error in current db)
-unique_values = df['key'].unique()
-unique_values = [value for value in unique_values if 'error' not in str(value)]
+    # reading data
+    df = pd.read_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/hv_ts.csv')
 
-# removing rows with specific values in the 'key' column
+    # renaming columns
+    df.rename(columns={'ts': 'time', 'device_profile': 'device_profile', 'devname': 'device_name', 'key': 'key', 'merged_column': 'value'}, inplace=True)
 
-# Sample df so it wouldnt crash, Exculude this in colab
-df = df.sample(frac=0.1)  # Use 10% of the data for testing
+    #gets all the keys other than error(no key is error in current db)
+    unique_values = df['key'].unique()
+    unique_values = [value for value in unique_values if 'error' not in str(value)]
 
-values_to_exclude = ['devName', 'devEUI', 'time', 'snr', 'rssi', 'protocol_version', 'firmware_version', 'hardware_version', 'sn', 'active', 'images_urls', 'water_images_urls', 'serialnumber', 'Location']
-column_name_to_check = 'key'
-# Print shape before filtering
-print(f"Shape of df before filtering: {df.shape}")
-# Filter out rows where the value in the 'key' column is not in the list of values to exclude
-#df_sample = df.sample(frac=0.1)  # Use 10% of the data for testing
-df = df[~df[column_name_to_check].isin(values_to_exclude)]
-# Print shape after filtering
-print(f"Shape of df after filtering: {df.shape}")
-unique_values_after = df['key'].unique()
+    # removing rows with specific values in the 'key' column
+
+    # Sample df so it wouldnt crash, Exculude this in colab
+    df = df.sample(frac=0.1)  # Use 10% of the data for testing
+
+    values_to_exclude = ['devName', 'devEUI', 'time', 'snr', 'rssi', 'protocol_version', 'firmware_version', 'hardware_version', 'sn', 'active', 'images_urls', 'water_images_urls', 'serialnumber', 'Location']
+    column_name_to_check = 'key'
+    # Print shape before filtering
+    print(f"Shape of df before filtering: {df.shape}")
+    # Filter out rows where the value in the 'key' column is not in the list of values to exclude
+    #df_sample = df.sample(frac=0.1)  # Use 10% of the data for testing
+    df = df[~df[column_name_to_check].isin(values_to_exclude)]
+    # Print shape after filtering
+    print(f"Shape of df after filtering: {df.shape}")
+    unique_values_after = df['key'].unique()
+
+    return df
+
+
+# Call the function
+df = process_hv_data()
 
 #for sampling
 #df_sample = df.head(10000)
@@ -230,7 +239,7 @@ conversion_map = {
     "i-lb closed1.png": 1,    # closed is 1
     "true": 1,                # true maps to 1
     "false": 0,               # false maps to 0
-    "water alert.png": 0      # water alert is 0
+    "water alert.png": 1      # water alert is 1
 }
 
 # Create a new boolean column from the cleaned value column.
@@ -240,9 +249,6 @@ df['boolean_value'] = df['clean_value'].astype(str).str.lower().map(conversion_m
 # Check the conversion results by counting each value (including any NaNs)
 print("=== Boolean Value Column Stats ===")
 print(df['boolean_value'].value_counts(dropna=False))
-
-
-
 
 # Verify conversion for specific problematic values
 # Create a temporary lowercased version of clean_value for robust matching
@@ -257,6 +263,16 @@ filtered_test = df[df['clean_value_lower'].isin(values_to_check)][['value', 'cle
 # Print the filtered rows to verify if the boolean conversion worked as expected
 print("Filtered test rows for conversion:")
 print(filtered_test)
+
+
+
+
+
+
+
+
+
+
 
 
 
