@@ -239,30 +239,29 @@ conversion_map = {
     "i-lb closed1.png": 1,    # closed is 1
     "true": 1,                # true maps to 1
     "false": 0,               # false maps to 0
-    "water alert.png": 1      # water alert is 1
+    "water alert.png": 1,     # water alert is 1
+    "on": 1                   # on is 1
 }
 
-# Create a new boolean column from the cleaned value column.
-# Ensure the cleaned column is in string format and in lowercase before mapping.
-df['boolean_value'] = df['clean_value'].astype(str).str.lower().map(conversion_map)
 
-# Check the conversion results by counting each value (including any NaNs)
-print("=== Boolean Value Column Stats ===")
-print(df['boolean_value'].value_counts(dropna=False))
+# Apply the conversion map to the 'value' column where 'clean_value' is NaN
+# We iterate through the original 'value' column where 'clean_value' became NaN
+# and use the map to fill the 'clean_value' with numeric equivalents.
+for original_str, mapped_val in conversion_map.items():
+    # Find rows where clean_value is NaN AND original value matches the key (case-insensitive)
+    mask = df['clean_value'].isna() & (df['value'].astype(str).str.strip().str.lower() == original_str)
+    df.loc[mask, 'clean_value'] = mapped_val
 
-# Verify conversion for specific problematic values
-# Create a temporary lowercased version of clean_value for robust matching
-df['clean_value_lower'] = df['clean_value'].astype(str).str.lower()
+df['clean_value'] = pd.to_numeric(df['clean_value'], errors='coerce')
 
-# Define the values to check (lowercase)
-values_to_check = ["i-lb_closed.svg", "safe.png"]
+print("\n--- After Conversion Map Application ---")
+print("Data type of 'clean_value':", df['clean_value'].dtype)
+print("Total NaN values in 'clean_value':", df['clean_value'].isna().sum())
 
-# Filter rows where the cleaned value matches these problematic values
-filtered_test = df[df['clean_value_lower'].isin(values_to_check)][['value', 'clean_value', 'boolean_value']]
 
-# Print the filtered rows to verify if the boolean conversion worked as expected
-print("Filtered test rows for conversion:")
-print(filtered_test)
+
+
+
 
 
 
