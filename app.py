@@ -4,34 +4,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import warnings
-warnings.filterwarnings('ignore')
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from xgboost import XGBClassifier
-from catboost import CatBoostClassifier
-from sklearn.ensemble import ExtraTreesClassifier
-from lightgbm import LGBMClassifier
-from sklearn.ensemble import VotingClassifier
-import folium
-from folium.plugins import HeatMap
-import plotly.express as px
 import gc 
+warnings.filterwarnings('ignore')
 
-# plotting configurations
-plt.style.use('fivethirtyeight')
-# %matplotlib inline
-pd.set_option('display.max_columns', 32)
 
 def process_hv_data():
     import pandas as pd
@@ -56,8 +32,10 @@ def process_hv_data():
         'firmware_version', 'hardware_version', 'sn', 'active',
         'images_urls', 'water_images_urls', 'serialnumber', 'Location',
         'gpio_in_1', 'gpio_in_2', 'gpio_in_3', 'gpio_in_4',
-        'gpio_out_1', 'gpio_out_2'
+        'gpio_out_1', 'gpio_out_2', '420_ir_a_value', '420_ir_b_value',
+        '420_ir_c_value', 'alarm_value'
     ]
+
     column_name_to_check = 'key'
     # Print shape before filtering
     print(f"Shape of df before filtering: {df.shape}")
