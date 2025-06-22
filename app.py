@@ -50,7 +50,13 @@ def process_hv_data():
     # Sample df so it wouldnt crash, Exculude this in colab
     df = df.sample(frac=0.1)  # Use 10% of the data for testing
 
-    values_to_exclude = ['devName', 'devEUI', 'time', 'snr', 'rssi', 'protocol_version', 'firmware_version', 'hardware_version', 'sn', 'active', 'images_urls', 'water_images_urls', 'serialnumber', 'Location']
+    values_to_exclude = [
+        'devName', 'devEUI', 'time', 'snr', 'rssi', 'protocol_version', 
+        'firmware_version', 'hardware_version', 'sn', 'active', 
+        'images_urls', 'water_images_urls', 'serialnumber', 'Location',
+        'gpio_in_1', 'gpio_in_2', 'gpio_in_3', 'gpio_in_4', 
+        'gpio_out_1', 'gpio_out_2'
+    ]
     column_name_to_check = 'key'
     # Print shape before filtering
     print(f"Shape of df before filtering: {df.shape}")
@@ -107,10 +113,8 @@ conversion_map = {
     "on": 1                   # on is 1
 }
 
-
 # Apply the conversion map to the 'value' column where 'clean_value' is NaN
-# We iterate through the original 'value' column where 'clean_value' became NaN
-# and use the map to fill the 'clean_value' with numeric equivalents.
+# iterate through the original 'value' column where 'clean_value' became NaN
 for original_str, mapped_val in conversion_map.items():
     # Find rows where clean_value is NaN AND original value matches the key (case-insensitive)
     mask = df['clean_value'].isna() & (df['value'].astype(str).str.strip().str.lower() == original_str)
@@ -153,6 +157,50 @@ df_sample = df_pivoted.head(10000)
 
 
 
+#GEMINI
+# Convert 'time' (milliseconds) to datetime objects
+df['datetime'] = pd.to_datetime(df['time'], unit='ms')
+
+# Create a binned time column by rounding to the nearest 3 seconds
+df['binned_time'] = df['datetime'].dt.round('3S')
+
+# Pivot the table using 'binned_time' as part of the index
+# Use df.pivot_table because it can handle multiple values per bin using aggfunc
+# We will aggregate 'clean_value' by its mean for values falling into the same 3-second window
+df_pivoted = df.pivot_table(
+    index=['binned_time', 'device_profile', 'device_name'],
+    columns='key',
+    values='clean_value',  # Use the cleaned, numeric values for pivoting
+    aggfunc='mean'         # Aggregate multiple readings within a 3-second window by their mean
+).reset_index()
+
+# Remove the 'key' column name from the columns MultiIndex for cleaner access
+df_pivoted.columns.name = None
+
+# Optional: Add suffix to key column names for clarity (adjusted for pivot_table output)
+new_columns = []
+for col in df_pivoted.columns:
+    if col in ['binned_time', 'device_profile', 'device_name']:
+        new_columns.append(col)
+    else:
+        new_columns.append(f"{col}_value") # Add suffix to measure columns
+df_pivoted.columns = new_columns
+
+# Display the result
+print("\n--- Pivoting with 3-second Time Window ---")
+print("Original DataFrame shape:", df.shape)
+print("Pivoted DataFrame shape:", df_pivoted.shape)
+print("\nPivoted DataFrame columns:")
+print(df_pivoted.columns.tolist())
+print("\nFirst few rows:")
+print(df_pivoted.head())
+
+# Check for any missing values after pivot (these are now legitimate NaNs from sparse data)
+print(f"\nMissing values per column:")
+print(df_pivoted.isnull().sum().sort_values(ascending=False)) # Sorted to see most missing first
+
+# Optional: Drop the intermediate 'datetime' column if no longer needed
+df.drop(columns=['datetime'], inplace=True)
 
 
 
