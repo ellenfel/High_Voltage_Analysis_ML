@@ -1,0 +1,65 @@
+Project To-Do List
+
+This list outlines immediate next steps and areas for improvement to enhance the Machine Learning model.
+Current Status:
+
+    Data cleaned and pivoted successfully.
+
+    Target variable (ipec_pd) defined.
+
+    Categorical features one-hot encoded.
+
+    Initial set of regression models trained and evaluated.
+
+    Basic performance plots generated.
+
+Next Steps & Improvements:
+1. Data & Feature Engineering Refinements:
+
+    Check data one hot encoding for device names. JB1 seems missing
+
+    Redundant Feature Removal: Drop one feature from each perfectly correlated pair (correlation = 1.0000) identified in the correlation analysis to avoid redundancy and simplify the model.
+
+        image_name_value / lid_switch_value
+
+        thermocouple_b_value / thermocouple_c_value (?)
+
+        water_detector_value / water_image_name_value
+
+    Time-Series Features: Explore and add more time-based features from the time column (e.g., hour_of_day, day_of_week, day_of_year, month, year). (maybe)
+
+
+2. Model Comprehensive Enhancements:
+
+    Hyperparameter Tuning: Implement GridSearchCV or RandomizedSearchCV for the best-performing models (e.g., XGBoost, LightGBM, RandomForest) to find optimal hyperparameters that maximize performance metrics (e.g., minimize RMSE or MAE).
+
+    Cross-Validation: Implement K-Fold Cross-Validation (or Time-Series Cross-Validation if applicable) to get a more robust estimate of model performance and reduce reliance on a single train-test split.
+
+    Error Analysis: Dive deeper into the residuals. Are there patterns in the errors? Are errors higher for specific devices, time periods, or ipec_pd ranges? This can guide further feature engineering or model selection.
+
+    Feature Importance: For tree-based models, extract and visualize feature importances. This helps understand which sensors/features contribute most to ipec_pd prediction, valuable for thesis discussion.
+
+    Ensemble Modeling (Advanced): Consider a VotingRegressor or stacking different models together for potentially superior performance.
+
+    Model Explainability (XAI): For your thesis, explore tools like SHAP or LIME to explain individual predictions and overall model behavior.
+
+
+3. Figure Style Improvements:
+
+    Consistent Styling: Ensure all plots (e.g., Actual vs. Predicted, Residuals, distributions) use a consistent color scheme, font sizes, and layout.
+
+    Legends:
+
+        Scatter Plots (Actual vs. Predicted, Residuals): Explicitly add legends if you introduce different point types or colors (e.g., for different devices, or if coloring by error magnitude).
+
+        Lines: Ensure trend lines or reference lines are clearly labeled in the legend.
+
+    Labels & Titles: Use descriptive and concise titles and axis labels with units if applicable.
+
+    Axis Limits: Manually set axis limits where appropriate to ensure clarity and focus on the relevant data range.
+
+    High-Resolution Saving: Save figures in a high-resolution format suitable for your thesis (e.g., .png at dpi=300 or vector formats like .svg or .pdf).
+
+        Example: plt.savefig('path/to/figure_name.png', dpi=300, bbox_inches='tight')
+
+    Contextual Annotations: Add text annotations or arrows on plots to highlight specific points or trends that are relevant to your analysis or thesis arguments.
