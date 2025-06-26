@@ -186,3 +186,5 @@ gc.collect() # Final garbage collection for pivoting section
 # Keep the df_sample line as it was in your original script
 df_sample = df_pivoted.head(10000)
 print("\n'df_sample' created (first 10,000 rows of df_pivoted).")
+
+#
