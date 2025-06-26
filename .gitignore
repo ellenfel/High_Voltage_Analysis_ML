@@ -11,4 +11,7 @@ __pycache__/
 *.pyo
 
 
+# database files
 data/
+**/*.csv
+
