@@ -5,6 +5,8 @@ Current Status:
 
     Data cleaned and pivoted successfully.
 
+    All NaN' Cleared
+
     Target variable (ipec_pd) defined.
 
     Categorical features one-hot encoded.
@@ -14,22 +16,8 @@ Current Status:
     Basic performance plots generated.
 
 Next Steps & Improvements:
-1. Data & Feature Engineering Refinements:
 
-    Check data one hot encoding for device names. JB1 seems missing
-
-    Redundant Feature Removal: Drop one feature from each perfectly correlated pair (correlation = 1.0000) identified in the correlation analysis to avoid redundancy and simplify the model.
-
-        image_name_value / lid_switch_value
-
-        thermocouple_b_value / thermocouple_c_value (?)
-
-        water_detector_value / water_image_name_value
-
-    Time-Series Features: Explore and add more time-based features from the time column (e.g., hour_of_day, day_of_week, day_of_year, month, year). (maybe)
-
-
-2. Model Comprehensive Enhancements:
+1. Model Comprehensive Enhancements:
 
     Hyperparameter Tuning: Implement GridSearchCV or RandomizedSearchCV for the best-performing models (e.g., XGBoost, LightGBM, RandomForest) to find optimal hyperparameters that maximize performance metrics (e.g., minimize RMSE or MAE).
 
@@ -44,7 +32,7 @@ Next Steps & Improvements:
     Model Explainability (XAI): For your thesis, explore tools like SHAP or LIME to explain individual predictions and overall model behavior.
 
 
-3. Figure Style Improvements:
+2. Figure Style Improvements:
 
     Consistent Styling: Ensure all plots (e.g., Actual vs. Predicted, Residuals, distributions) use a consistent color scheme, font sizes, and layout.
 
@@ -58,8 +46,8 @@ Next Steps & Improvements:
 
     Axis Limits: Manually set axis limits where appropriate to ensure clarity and focus on the relevant data range.
 
-    High-Resolution Saving: Save figures in a high-resolution format suitable for your thesis (e.g., .png at dpi=300 or vector formats like .svg or .pdf).
+    High-Resolution Saving: Save figures in a high-resolution format suitable for your thesis (e.g., .png at dpi=300). 
 
-        Example: plt.savefig('path/to/figure_name.png', dpi=300, bbox_inches='tight')
+        dir location:`/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/docs/figures`
 
     Contextual Annotations: Add text annotations or arrows on plots to highlight specific points or trends that are relevant to your analysis or thesis arguments.

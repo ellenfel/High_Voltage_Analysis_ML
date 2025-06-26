@@ -6,6 +6,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns # Import seaborn for enhanced plots
 import warnings
 import gc
+
+# ML specific imports
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor # For LightGBM Regressor
+
+# Plotting imports
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
 warnings.filterwarnings('ignore')
 
 
@@ -27,8 +41,16 @@ def one_hot_encode(df, columns):
     """
     return pd.get_dummies(df, columns=columns, drop_first=True)
 
+#columns before one-hot encoding
+print("Columns before one-hot encoding:")
+print(df.columns.tolist())
+
 # Apply one-hot encoding to 'device_profile' and 'device_name'
 df_encoded = one_hot_encode(df, ['device_profile', 'device_name'])
+
+#columns after one-hot encoding
+print("\nColumns after one-hot encoding:")
+print(df_encoded.columns.tolist())
 
 ### Selecting target as ipec value ###
 
@@ -39,80 +61,74 @@ df_encoded['ipec_pd'] = df_encoded[['ipec_pddata_avg_pd_a_value', 'ipec_pddata_a
 columns_to_drop = ['ipec_pddata_avg_pd_a_value', 'ipec_pddata_avg_pd_b_value', 'ipec_pddata_avg_pd_c_value']
 df_encoded.drop(columns=columns_to_drop, inplace=True)
 
-# Is it weekend column based on 'time' ms-epoch column
+# remove 'image_name_value' and 'water_detector_value' columns
+columns_to_drop = ['image_name_value', 'water_detector_value']
+df_encoded.drop(columns=columns_to_drop, inplace=True)
+
+# Time-based feature engineering
 def is_weekend(time_column):
     """
     Check if the time is on a weekend.
-    
+
     Parameters:
     time_column (pd.Series): Series containing time in ms-epoch format.
-    
+
     Returns:
     pd.Series: Boolean Series indicating if the time is on a weekend.
     """
+    # Convert to datetime and check day of week (Monday=0, Sunday=6)
     return pd.to_datetime(time_column, unit='ms').dt.dayofweek >= 5
 
-# create test_df with 2 columns which are time and is_weekend column
-test_df = pd.DataFrame({
-    'time': df_encoded['time'],
-    'is_weekend': is_weekend(df_encoded['time'])
-})
-
-# Add the is_weekend column to the main DataFrame
-df_encoded['is_weekend'] = test_df['is_weekend']
-
-# Drop the 'time' column if it exists, as it is not needed for modeling
 if 'time' in df_encoded.columns:
+    # Convert the 'time' column to datetime objects once for efficiency.
+    print("Converting 'time' to datetime objects...")
+    datetime_series = pd.to_datetime(df_encoded['time'], unit='ms')
+
+    # Add only 'hour_of_day' feature
+    print("Adding 'hour_of_day' feature...")
+    df_encoded['hour_of_day'] = datetime_series.dt.hour          # Hour (0-23)
+
+    # All other granular time-based features (day_of_week, day_of_month, month, year, etc.)
+    # have been removed as per request.
+
+    print("Time-based feature 'hour_of_day' added.")
+
+    # Drop the original 'time' column, as its information is now decomposed into other features
+    print("Dropping original 'time' column...")
     df_encoded.drop(columns=['time'], inplace=True)
-# Reset index after dropping columns
-df_encoded.reset_index(drop=True, inplace=True) 
+
+# Reset index after potentially dropping columns (good practice)
+df_encoded.reset_index(drop=True, inplace=True)
+print("DataFrame index reset.")
+gc.collect() # Clean up memory after feature engineering
+
+print("Time-based feature engineering complete.")
+print(f"New df_encoded shape after time feature engineering: {df_encoded.shape}")
+print("New df_encoded columns (sample):")
+print(df_encoded.columns.tolist()[-5:]) # Show last 5 columns which should include new time feature
 
 
 # put the target column 'ipec_pd' at the end of the DataFrame
 target_column = df_encoded.pop('ipec_pd')
 df_encoded['ipec_pd'] = target_column 
-
 gc.collect()
 
 # Split the DataFrame into X (features) and y (target)
 X = df_encoded.drop(columns=['ipec_pd'])
 y = df_encoded['ipec_pd']
 
+# Save the ML Ready DataFrame to a CSV file for future use
+output_file = '/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/df_ml_ready.csv'
+print(f"Saving ML ready DataFrame to {output_file}...")
+df_encoded.to_csv(output_file, index=False)
+print("Data saved successfully.")
 
-import pandas as pd
-import numpy as np
-import gc
-import warnings
-warnings.filterwarnings('ignore')
 
-# ML specific imports
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor # For LightGBM Regressor
 
-# Plotting imports
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# --- IMPORTANT: This code assumes df_encoded, X, and y are ready from your previous cells. ---
-# --- No dummy data generation is included; it works directly with your prepared data. ---
-
+### --- Machine Learning Pipeline --- ###
 print("Starting Machine Learning Pipeline...")
 
-# --- 1. Handle NaNs in Features (X) ---
-# As discussed, for structural NaNs due to different device signal lists,
-# zero-imputation is a common and often effective strategy for sensor data.
-# This implies that a missing reading for a sensor means it's inactive or not present.
-print(f"NaNs in X before imputation: {X.isna().sum().sum()}")
-X.fillna(0, inplace=True)
-print(f"NaNs in X after zero-imputation: {X.isna().sum().sum()}")
-gc.collect() # Free memory after imputation
-
-
-# --- 2. Data Splitting ---
+# --- 1. Data Splitting ---
 # Split the data into training and testing sets.
 # For time-series, a time-based split is generally preferred to prevent data leakage,
 # but for simplicity and if the order isn't strictly sequential for all predictions,
@@ -124,7 +140,7 @@ print(f"X_test shape: {X_test.shape}, y_test shape: {y_test.shape}")
 gc.collect() # Free memory after splitting
 
 
-# --- 3. Feature Scaling ---
+# --- 2. Feature Scaling ---
 # Scaling is crucial for many ML models (like linear models, SVMs, k-NN)
 # but less critical for tree-based models. However, it's good practice.
 # Fit the scaler only on the training data to avoid data leakage.
