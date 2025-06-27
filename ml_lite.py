@@ -181,6 +181,9 @@ models_and_params = {
 }
 
 
+
+###FOUNDATIONAL CODE FOR K-FOLD CROSS-VALIDATION AND GRIDSEARCHCV
+
 # Setup K-Fold cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
 print(f"Using K-Fold Cross-Validation with {kf.get_n_splits()} splits.")
@@ -452,29 +455,6 @@ for name, metrics in all_results.items():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- Added: Simple Deep Neural Network (DNN) for potentially more accuracy ---
 print("\n--- Processing Model: Simple Deep Neural Network (DNN) ---")
 
@@ -614,6 +594,10 @@ else:
     plt.savefig(plot_filepath, dpi=FIGURE_DPI)
     plt.close()
     print(f"DNN Training History Plots saved successfully to: {plot_filepath}")
+
+
+
+
 
 
 
@@ -926,6 +910,20 @@ plot_filepath_history = os.path.join(FIGURE_DIR, f'{timestamp}_BEST_DNN_Training
 plt.savefig(plot_filepath_history, dpi=FIGURE_DPI)
 plt.close()
 print(f"BEST DNN Training History Plots saved successfully to: {plot_filepath_history}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
