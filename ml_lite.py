@@ -149,36 +149,34 @@ def generate_model_plots(model_name, y_true, y_pred, feature_importances=None, f
     gc.collect()
 
 
-# --- 4. Model Selection, Tuning, and Cross-Validation ---
-print("\n--- 4. Starting Model Training, Tuning, and Evaluation (Expanded Search) ---")
+# --- 4. Model Selection, Tuning, and Cross-Validation (Original Limited Parameters) ---
+print("\n--- 4. Starting Model Training, Tuning, and Evaluation (Original Limited Parameters) ---")
 # Define models and their hyperparameter grids for GridSearchCV
-# THESE GRIDS HAVE BEEN EXPANDED FOR MORE ACCURATE RESULTS.
-# THIS WILL LIKELY INCREASE RUNTIME SIGNIFICANTLY BEYOND 20 MINUTES.
+# THESE GRIDS ARE RESTORED TO THEIR ORIGINAL LIMITED CONFIGURATION FOR FASTER RUNTIME.
 models_and_params = {
     'RandomForestRegressor': {
         'model': RandomForestRegressor(random_state=42, n_jobs=-1),
         'params': {
-            'n_estimators': [100, 200, 300],  # More options, higher values
-            'max_depth': [10, 20, 30, None],  # Expanded range, including no max depth
-            'min_samples_leaf': [1, 2, 4]     # More options
+            'n_estimators': [50, 100],  # Original limited options
+            'max_depth': [10, 20],      # Original limited options
+            'min_samples_leaf': [1, 5]  # Original limited options
         }
     },
     'XGBRegressor': {
         'model': XGBRegressor(random_state=42, n_jobs=-1, tree_method='hist', objective='reg:squarederror'),
         'params': {
-            'n_estimators': [100, 200, 300],  # More options
-            'learning_rate': [0.05, 0.1, 0.15], # More options for learning rate
-            'max_depth': [5, 7, 9],           # Expanded range for max_depth
-            'subsample': [0.7, 0.8, 0.9],     # Expanded options for subsample
-            'colsample_bytree': [0.7, 0.8, 0.9] # Added colsample_bytree
+            'n_estimators': [50, 100],      # Original limited options
+            'learning_rate': [0.1],         # Original fixed value
+            'max_depth': [5],               # Original fixed value
+            'subsample': [0.8]              # Original fixed value
         }
     },
     'GradientBoostingRegressor': {
         'model': GradientBoostingRegressor(random_state=42),
         'params': {
-            'n_estimators': [100, 200, 300],  # More options
-            'learning_rate': [0.05, 0.1, 0.15], # More options
-            'max_depth': [3, 5, 7]             # Expanded range
+            'n_estimators': [50, 100],      # Original limited options
+            'learning_rate': [0.1],         # Original fixed value
+            'max_depth': [3]                # Original fixed value
         }
     }
 }
