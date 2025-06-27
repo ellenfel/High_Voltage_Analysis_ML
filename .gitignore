@@ -15,3 +15,5 @@ __pycache__/
 data/
 **/*.csv
 
+#keras model files
+keras_tuner_dir/
