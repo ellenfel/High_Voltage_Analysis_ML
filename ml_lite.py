@@ -987,6 +987,8 @@ except Exception as e:
 best_hp = tuner.get_best_hyperparameters(num_trials=1)[0]
 best_dnn_model = tuner.get_best_models(num_models=1)[0]
 
+print(best_dnn_model.summary()) # Print the model summary to verify structure
+
 print(f"\nBest DNN Hyperparameters found:\n{best_hp.values}")
 
 # Now, evaluate the best_dnn_model on the final hold-out test set
