@@ -62,7 +62,6 @@ print(f"Training set size: {X_train.shape[0]} samples")
 print(f"Test set size: {X_test.shape[0]} samples")
 gc.collect()
 
-
 # --- 2. Feature Scaling ---
 print("\n--- 2. Scaling Features ---")
 # Fit on training data only to prevent data leakage
@@ -75,11 +74,8 @@ X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_test.columns)
 print("Features scaled using StandardScaler.")
 gc.collect()
 
-
-
 all_results = {}
 best_estimators = {}
-
 
 # --- 3. Helper Function for Plotting ---
 def generate_model_plots(model_name, y_true, y_pred, feature_importances=None, feature_names=None):
@@ -152,7 +148,6 @@ def generate_model_plots(model_name, y_true, y_pred, feature_importances=None, f
     print(f"Plots for {model_name} saved successfully.")
     gc.collect()
 
-
 # --- 4. Model Selection, Tuning, and Cross-Validation (Original Limited Parameters) ---
 print("\n--- 4. Starting Model Training, Tuning, and Evaluation (Original Limited Parameters) ---")
 # Define models and their hyperparameter grids for GridSearchCV
@@ -187,13 +182,11 @@ models_and_params = {
 
 
 
-###FOUNDATIONAL CODE FOR K-FOLD CROSS-VALIDATION AND GRIDSEARCHCV
 
+###FOUNDATIONAL CODE FOR K-FOLD CROSS-VALIDATION AND GRIDSEARCHCV
 # Setup K-Fold cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
 print(f"Using K-Fold Cross-Validation with {kf.get_n_splits()} splits.")
-
-
 
 for name, config in models_and_params.items():
     print(f"\n--- Processing Model: {name} ---")
@@ -271,191 +264,6 @@ for name, config in models_and_params.items():
     print(f"Plots for {name} saved successfully.")
 
     gc.collect()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# --- Added: Simple Deep Neural Network (DNN) for potentially more accuracy ---
-print("\n--- Processing Model: Simple Deep Neural Network (DNN) ---")
-
-# Convert scaled dataframes to numpy arrays for Keras
-X_train_scaled_np = X_train_scaled.to_numpy()
-X_test_scaled_np = X_test_scaled.to_numpy()
-y_train_np = y_train.to_numpy()
-y_test_np = y_test.to_numpy()
-
-# Define the DNN model for a thesis, focusing on regularization
-# 'kernel_regularizer' applies L2 regularization (weight decay) to the layer's weights.
-# BatchNormalization helps stabilize and accelerate training, and also acts as a mild regularizer.
-# Dropout regularizes by randomly setting a fraction of input units to 0 at each update step during training.
-l2_lambda = 0.001 # A common starting point for L2 regularization strength
-
-dnn_model = keras.Sequential([
-    # Input Layer explicitly defined for clarity, shape corresponds to 30 columns of X
-    keras.Input(shape=(X_train_scaled_np.shape[1],)), # X has 30 columns
-
-    # First Hidden Layer
-    layers.Dense(256, kernel_regularizer=keras.regularizers.l2(l2_lambda)),
-    layers.BatchNormalization(), # Normalize activations of the previous layer
-    layers.Activation('relu'),   # Apply activation function
-    layers.Dropout(0.4),         # Increased dropout rate
-
-    # Second Hidden Layer
-    layers.Dense(128, kernel_regularizer=keras.regularizers.l2(l2_lambda)),
-    layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.Dropout(0.4),         # Increased dropout rate
-
-    # Third Hidden Layer
-    layers.Dense(64, kernel_regularizer=keras.regularizers.l2(l2_lambda)),
-    layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.Dropout(0.3),         # Slightly lower dropout on smaller layer
-
-    # Output Layer for Regression
-    layers.Dense(1)
-])
-
-# Define a custom learning rate schedule or use ReduceLROnPlateau
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.001) # Explicitly set learning rate
-
-# Compile the model
-dnn_model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mse'])
-
-# Display model summary
-dnn_model.summary()
-
-# Add Callbacks for better training and potential speed-up
-# Reduced patience for EarlyStopping to stop training sooner when overfitting starts
-early_stopping = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True, verbose=1) # Reduced patience
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=0.00001, verbose=1) # Reduced patience for LR reduction
-
-# Train the model
-print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting DNN training with regularization.")
-history = dnn_model.fit(X_train_scaled_np, y_train_np,
-                        epochs=200, # Max epochs, EarlyStopping will manage
-                        batch_size=64,
-                        validation_split=0.1, # Use a portion of training data for validation
-                        callbacks=[early_stopping, reduce_lr], # Apply callbacks
-                        verbose=1)
-print(f"[{datetime.now().strftime('%H:%M:%S')}] DNN training complete.")
-
-# --- NEW: Plotting Training History for DNN (like your examples) ---
-print("\n--- Generating DNN Training History Plots ---")
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-plt.figure(figsize=(14, 6)) # Adjusted figure size for better readability
-
-# Plot Training & Validation MAE (as your 'accuracy' proxy for regression)
-plt.subplot(1, 2, 1)
-plt.plot(history.history['mae'], label='Training MAE', color='blue')
-plt.plot(history.history['val_mae'], label='Validation MAE', color='green', linestyle='--')
-plt.title('DNN Training and Validation Mean Absolute Error', fontsize=14)
-plt.xlabel('Epochs', fontsize=12)
-plt.ylabel('Mean Absolute Error', fontsize=12)
-plt.legend(fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.7)
-
-# Plot Training & Validation Loss (MSE)
-plt.subplot(1, 2, 2)
-plt.plot(history.history['loss'], label='Training Loss (MSE)', color='red')
-plt.plot(history.history['val_loss'], label='Validation Loss (MSE)', color='purple', linestyle='--')
-plt.title('DNN Training and Validation Loss', fontsize=14)
-plt.xlabel('Epochs', fontsize=12)
-plt.ylabel('Loss (Mean Squared Error)', fontsize=12)
-plt.legend(fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.7)
-
-plt.tight_layout()
-plot_filepath = os.path.join(FIGURE_DIR, f'{timestamp}_DNN_Training_History.png')
-plt.savefig(plot_filepath, dpi=FIGURE_DPI)
-plt.close()
-print("DNN Training History Plots saved successfully.")
-# --- END NEW ---
-
-# Evaluate the DNN model
-print("\nEvaluating Simple DNN model on the final hold-out test set...")
-# Predict on the test set, then flatten the output as it comes as a 2D array (samples, 1)
-y_pred_dnn = dnn_model.predict(X_test_scaled_np).flatten()
-
-# Calculate ALL final metrics for DNN
-mse_dnn = mean_squared_error(y_test_np, y_pred_dnn)
-rmse_dnn = np.sqrt(mse_dnn)
-mae_dnn = mean_absolute_error(y_test_np, y_pred_dnn)
-r2_dnn = r2_score(y_test_np, y_pred_dnn)
-
-# New metrics for DNN
-msle_dnn = mean_squared_log_error(y_test_np, np.maximum(0, y_pred_dnn))
-rmsle_dnn = np.sqrt(msle_dnn)
-medae_dnn = median_absolute_error(y_test_np, y_pred_dnn)
-max_err_dnn = max_error(y_test_np, y_pred_dnn)
-
-# MAPE calculation for DNN (handle division by zero)
-if 0 in y_test_np:
-    non_zero_indices_dnn = y_test_np != 0
-    if np.sum(non_zero_indices_dnn) > 0:
-        mape_dnn = np.mean(np.abs((y_test_np[non_zero_indices_dnn] - y_pred_dnn[non_zero_indices_dnn]) / y_test_np[non_zero_indices_dnn])) * 100
-    else:
-        mape_dnn = np.nan
-else:
-    mape_dnn = np.mean(np.abs((y_test_np - y_pred_dnn) / y_test_np)) * 100
-
-
-all_results['Simple_DNN'] = {
-    'Test_MSE': mse_dnn,
-    'Test_RMSE': rmse_dnn,
-    'Test_MAE': mae_dnn,
-    'Test_R2': r2_dnn,
-    'Test_MSLE': msle_dnn,
-    'Test_RMSLE': rmsle_dnn,
-    'Test_MedAE': medae_dnn,
-    'Test_MaxError': max_err_dnn,
-    'Test_MAPE': mape_dnn
-}
-best_estimators['Simple_DNN'] = dnn_model # Store the trained Keras model
-
-
-print(f"Simple DNN Test RMSE: {rmse_dnn:.4f}")
-print(f"Simple DNN Test MAE: {mae_dnn:.4f}")
-print(f"Simple DNN Test R2: {r2_dnn:.4f}")
-
-# Generate and save plots for the DNN model
-print(f"Generating and saving plots for Simple_DNN (Prediction Diagnostics)...")
-# Feature importances are not directly available for DNNs in the same way, so pass None
-generate_model_plots('Simple_DNN', y_test_np, y_pred_dnn, feature_importances=None, feature_names=None)
-print(f"Plots for Simple_DNN (Prediction Diagnostics) saved successfully.")
-gc.collect()
-
-
-print("\n\n--- 5. Final Model Performance Summary ---")
-for name, metrics in all_results.items():
-    print(f"\nModel: {name}")
-    for metric, value in metrics.items():
-        # Handle NaN values for display
-        if pd.isna(value):
-            print(f"  {metric}: NaN")
-        else:
-            print(f"  {metric}: {value:.4f}")
-    print("-" * 30)
-
-
-
-
-
-
-
 
 
 # --- Added: Simple Deep Neural Network (DNN) for potentially more accuracy ---
@@ -616,6 +424,7 @@ else:
 
 
 
+### TUNER SECTION ###
 # Re-run these imports to ensure keras_tuner and statsmodels are available
 import tensorflow as tf
 from tensorflow import keras
@@ -921,110 +730,294 @@ print(f"BEST DNN Training History Plots saved successfully to: {plot_filepath_hi
 
 
 
+# --- IMPORTANT: EXECUTE THIS ENTIRE CELL IMMEDIATELY AFTER Ctrl+C ON TUNER.SEARCH() ---
+# DO NOT RESTART YOUR KERNEL BEFORE RUNNING THIS CELL.
+# This cell will save your best model, its hyperparameters, all calculated metrics,
+# and generate/save all required plots.
 
-
-
-
-
-### AFTER CTRL+C INTERRUPT HANDLING ###
-
-
-import json
+# --- 0. Essential Imports & Setup ---
 import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
 from datetime import datetime
+import json
+import gc # For garbage collection to free up memory
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_squared_log_error, median_absolute_error, max_error
+import tensorflow as tf # Required for Keras model operations and loading
 
-# --- Ensure required variables are defined from previous cells ---
-# X_train_scaled_np, X_test_scaled_np, y_train_np, y_test_np must be available.
-# tuner must be instantiated and tuner.search() must have run at least once.
-# best_hp and best_dnn_model must have been retrieved using tuner.get_best_hyperparameters() and tuner.get_best_models().
-# all_results dictionary must contain the 'Simple_DNN' entry with evaluation metrics.
+# Define FIGURE_DIR and FIGURE_DPI if not already globally defined in your script
+# Adjust this path if your 'docs/figures' directory is elsewhere
+if 'FIGURE_DIR' not in locals():
+    FIGURE_DIR = '/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/docs/figures'
+if 'FIGURE_DPI' not in locals():
+    FIGURE_DPI = 300
+os.makedirs(FIGURE_DIR, exist_ok=True) # Ensure the directory for figures exists
 
-# Define the directory for saving results (you can adjust this path)
-RESULTS_DIR = '/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/docs/results'
-os.makedirs(RESULTS_DIR, exist_ok=True) # Ensure the directory exists
+# Define a directory for saving models and metrics if not already done
+if 'MODEL_SAVE_DIR' not in locals():
+    MODEL_SAVE_DIR = '/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/saved_models'
+os.makedirs(MODEL_SAVE_DIR, exist_ok=True) # Ensure the directory for models exists
 
-print("\n--- Saving Best DNN Model Results to JSON ---")
+# --- 1. Define the generate_model_plots function (essential for plotting) ---
+# This function must be defined here to ensure it's available.
+def generate_model_plots(model_name, y_true, y_pred, feature_importances=None, feature_names=None):
+    """
+    Generates and saves a set of diagnostic plots for a regression model,
+    designed for thesis-quality visualization of skewed data.
+    """
+    print(f"Generating advanced prediction diagnostic plots for {model_name}...")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# 1. Prepare the data for JSON
-# Keras Tuner's best_hp.values is already a dictionary, which is perfect.
-# all_results['Simple_DNN'] is also a dictionary.
-# We'll combine them with a timestamp.
+    # Ensure y_true and y_pred are numpy arrays for consistent plotting
+    y_true = np.asarray(y_true).flatten()
+    y_pred = np.asarray(y_pred).flatten()
+    
+    # Calculate metrics for display on plots
+    current_mse = mean_squared_error(y_true, y_pred)
+    current_rmse = np.sqrt(current_mse)
+    current_mae = mean_absolute_error(y_true, y_pred)
+    current_r2 = r2_score(y_true, y_pred)
 
-# Ensure all values are JSON-serializable (e.g., convert numpy types if present in values)
-# For best_hp.values, it's typically Python native types.
-# For all_results, ensure numpy floats are converted if they came from np.sqrt, np.mean etc.
-# A simple way to handle potential numpy floats is to convert them explicitly to float:
-serializable_test_metrics = {k: float(v) if isinstance(v, (np.float32, np.float64)) else v for k, v in all_results['Simple_DNN'].items()}
+    # Handle cases where min/max might be problematic for empty arrays
+    min_val = min(y_true.min(), y_pred.min()) if y_true.size > 0 and y_pred.size > 0 else 0
+    max_val = max(y_true.max(), y_pred.max()) if y_true.size > 0 and y_pred.size > 0 else 1
+    
+    # --- Figure 1: Actual vs. Predicted (Overall and Zoomed) ---
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8)) # Two subplots for overall and zoom
+
+    # Overall plot (ax1)
+    sns.scatterplot(x=y_true, y=y_pred, alpha=0.3, s=30, edgecolor='none', ax=ax1, color='blue')
+    ax1.plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Perfect Prediction')
+    ax1.set_title(f'{model_name}: Actual vs. Predicted Values (Overall)', fontsize=16)
+    ax1.set_xlabel('Actual ipec_pd', fontsize=12)
+    ax1.set_ylabel('Predicted ipec_pd', fontsize=12)
+    ax1.legend()
+    ax1.grid(True, linestyle=':', alpha=0.7)
+    ax1.text(0.05, 0.95, f'RMSE: {current_rmse:.2f}\nMAE: {current_mae:.2f}\nR²: {current_r2:.2f}',
+             transform=ax1.transAxes, fontsize=12, verticalalignment='top',
+             bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.7))
 
 
-thesis_results_data = {
-    "timestamp_saved": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    "model_type": "Deep Neural Network (DNN)",
-    "best_hyperparameters": best_hp.values,
-    "final_test_metrics": serializable_test_metrics,
-    "keras_tuner_best_val_loss_so_far": float(tuner.oracle.get_best_trials(num_models=1)[0].score) # Get the exact best val_loss from tuner's internal records
-}
+    # Zoomed-in plot (ax2) - Focusing on lower values for better visibility of PD events
+    # Adjust zoom_threshold dynamically, but with a cap
+    zoom_threshold = min(y_true.max() * 0.1 if y_true.size > 0 else 100, 1000) 
+    sns.scatterplot(x=y_true, y=y_pred, alpha=0.5, s=50, edgecolor='k', ax=ax2, color='blue')
+    ax2.plot([0, zoom_threshold], [0, zoom_threshold], 'r--', lw=2, label='Perfect Prediction')
+    ax2.set_xlim(-50, zoom_threshold * 1.1)
+    ax2.set_ylim(-50, zoom_threshold * 1.1)
+    ax2.set_title(f'{model_name}: Actual vs. Predicted Values (Zoomed)', fontsize=16)
+    ax2.set_xlabel('Actual ipec_pd', fontsize=12)
+    ax2.set_ylabel('Predicted ipec_pd', fontsize=12)
+    ax2.legend()
+    ax2.grid(True, linestyle=':', alpha=0.7)
 
-# Generate a unique filename with a timestamp
-timestamp_filename = datetime.now().strftime("%Y%m%d_%H%M%S")
-json_filename = f"dnn_thesis_results_{timestamp_filename}.json"
-json_filepath = os.path.join(RESULTS_DIR, json_filename)
+    plt.tight_layout()
+    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_ActualVsPredicted.png'), dpi=FIGURE_DPI)
+    plt.close(fig)
 
-# 2. Save the data to a JSON file
+    # --- Figure 2: Residuals Plot vs. Predicted (Overall and Zoomed) ---
+    residuals = y_true - y_pred
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
+
+    # Overall residuals (ax1)
+    sns.scatterplot(x=y_pred, y=residuals, alpha=0.3, s=30, edgecolor='none', ax=ax1, color='green')
+    ax1.axhline(y=0, color='r', linestyle='--', lw=2, label='Zero Error')
+    ax1.set_title(f'{model_name}: Residuals Plot vs. Predicted (Overall)', fontsize=16)
+    ax1.set_xlabel('Predicted ipec_pd', fontsize=12)
+    ax1.set_ylabel('Residuals (Actual - Predicted)', fontsize=12)
+    ax1.legend()
+    ax1.grid(True, linestyle=':', alpha=0.7)
+
+    # Zoomed-in residuals (ax2)
+    zoom_res_limit = current_rmse * 2 # Heuristic for residual spread, adjust as needed
+    sns.scatterplot(x=y_pred, y=residuals, alpha=0.5, s=50, edgecolor='k', ax=ax2, color='green')
+    ax2.axhline(y=0, color='r', linestyle='--', lw=2, label='Zero Error')
+    ax2.set_xlim(min(y_pred.min(), -50) if y_pred.size > 0 else -50, zoom_threshold * 1.1)
+    ax2.set_ylim(-zoom_res_limit, zoom_res_limit)
+    ax2.set_title(f'{model_name}: Residuals Plot vs. Predicted (Zoomed)', fontsize=16)
+    ax2.set_xlabel('Predicted ipec_pd', fontsize=12)
+    ax2.set_ylabel('Residuals (Actual - Predicted)', fontsize=12)
+    ax2.legend()
+    ax2.grid(True, linestyle=':', alpha=0.7)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_ResidualsVsPredicted.png'), dpi=FIGURE_DPI)
+    plt.close(fig)
+
+    # --- Figure 3: Distribution of Residuals ---
+    plt.figure(figsize=(10, 7))
+    sns.histplot(residuals, kde=True, bins=50, color='purple')
+    plt.title(f'{model_name}: Distribution of Residuals', fontsize=16)
+    plt.xlabel('Residual Value', fontsize=12)
+    plt.ylabel('Frequency', fontsize=12)
+    plt.tight_layout()
+    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_ResidualsDistribution.png'), dpi=FIGURE_DPI)
+    plt.close()
+
+    # --- Figure 4: Feature Importance (if available) ---
+    if feature_importances is not None and feature_names is not None and len(feature_importances) > 0:
+        importance_df = pd.DataFrame({
+            'feature': feature_names,
+            'importance': feature_importances
+        }).sort_values('importance', ascending=False).head(20) # Show top 20 features
+
+        plt.figure(figsize=(12, 8))
+        sns.barplot(x='importance', y='feature', data=importance_df, palette='viridis')
+        plt.title(f'{model_name}: Top 20 Feature Importances', fontsize=16)
+        plt.xlabel('Importance Score', fontsize=12)
+        plt.ylabel('Features', fontsize=12)
+        plt.tight_layout()
+        plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_FeatureImportance.png'), dpi=FIGURE_DPI)
+        plt.close()
+        
+    # --- Figure 5: Residuals vs. Actual Values (Overall and Zoomed) ---
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
+
+    # Overall residuals vs Actual (ax1)
+    sns.scatterplot(x=y_true, y=residuals, alpha=0.3, s=30, edgecolor='none', ax=ax1, color='orange')
+    ax1.axhline(y=0, color='r', linestyle='--', lw=2, label='Zero Error')
+    ax1.set_title(f'{model_name}: Residuals Plot vs. Actual (Overall)', fontsize=16)
+    ax1.set_xlabel('Actual ipec_pd', fontsize=12)
+    ax1.set_ylabel('Residuals (Actual - Predicted)', fontsize=12)
+    ax1.legend()
+    ax1.grid(True, linestyle=':', alpha=0.7)
+
+    # Zoomed-in residuals vs Actual (ax2)
+    sns.scatterplot(x=y_true, y=residuals, alpha=0.5, s=50, edgecolor='k', ax=ax2, color='orange')
+    ax2.axhline(y=0, color='r', linestyle='--', lw=2, label='Zero Error')
+    ax2.set_xlim(min(y_true.min(), -50) if y_true.size > 0 else -50, zoom_threshold * 1.1)
+    ax2.set_ylim(-zoom_res_limit, zoom_res_limit)
+    ax2.set_title(f'{model_name}: Residuals Plot vs. Actual (Zoomed)', fontsize=16)
+    ax2.set_xlabel('Actual ipec_pd', fontsize=12)
+    ax2.set_ylabel('Residuals (Actual - Predicted)', fontsize=12)
+    ax2.legend()
+    ax2.grid(True, linestyle=':', alpha=0.7)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_ResidualsVsActual.png'), dpi=FIGURE_DPI)
+    plt.close(fig)
+
+    # --- Figure 6: Q-Q Plot of Residuals (for normality check) ---
+    if len(residuals) > 1: # Q-Q plot needs at least 2 data points
+        try:
+            fig = sm.qqplot(residuals, line='45', fit=True)
+            plt.title(f'{model_name}: Quantile-Quantile Plot of Residuals', fontsize=16)
+            plt.xlabel('Theoretical Quantiles', fontsize=12)
+            plt.ylabel('Sample Quantiles of Residuals', fontsize=12)
+            plt.grid(True, linestyle=':', alpha=0.7)
+            plt.tight_layout()
+            plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_QQPlotResiduals.png'), dpi=FIGURE_DPI)
+            plt.close(fig)
+        except Exception as e:
+            print(f"Warning: Could not generate Q-Q plot due to error: {e}")
+    else:
+        print("Warning: Not enough data points to generate Q-Q plot for residuals.")
+        
+    print(f"Prediction diagnostic plots for {model_name} saved successfully.")
+    gc.collect()
+
+
+# --- 2. Initialize dictionaries if not already (safeguard) ---
+# This ensures these exist even if you restart and only run this cell.
+if 'all_results' not in locals():
+    all_results = {}
+if 'best_estimators' not in locals():
+    best_estimators = {}
+
+# --- 3. Retrieve Best Model and Hyperparameters from Tuner ---
+# This assumes 'tuner' object is available from the interrupted search
+print("\n--- Retrieving Best Model and Hyperparameters from Tuner ---")
+best_hp = None
+best_dnn_model = None
 try:
-    with open(json_filepath, 'w') as f:
-        json.dump(thesis_results_data, f, indent=4) # indent=4 makes it human-readable
-    print(f"✅ Best DNN model parameters and results successfully saved to: {json_filepath}")
+    best_hp = tuner.get_best_hyperparameters(num_trials=1)[0]
+    best_dnn_model = tuner.get_best_models(num_models=1)[0]
+    print(f"\nBest DNN Hyperparameters Found:\n{best_hp.values}")
 except Exception as e:
-    print(f"❌ Error saving results to JSON: {e}")
+    print(f"ERROR: Failed to retrieve best model/hyperparameters from tuner: {e}")
+    print("This often happens if you restarted the kernel or 'tuner.search()' did not run long enough to save any trials.")
+    print("Cannot proceed with saving model, metrics, and plots. Please ensure 'tuner' object is active.")
+    raise # Re-raise the exception to stop execution and alert the user
 
+# --- 4. Validate Data Availability ---
+print("\n--- Validating Data Availability for Evaluation & Retraining ---")
+data_error = False
+if 'X_test_scaled_np' not in locals() or not isinstance(X_test_scaled_np, np.ndarray) or X_test_scaled_np.size == 0:
+    print("CRITICAL ERROR: X_test_scaled_np not found or is empty. Cannot perform model evaluation.")
+    data_error = True
+if 'y_test_np' not in locals() or not isinstance(y_test_np, np.ndarray) or y_test_np.size == 0:
+    print("CRITICAL ERROR: y_test_np not found or is empty. Cannot perform model evaluation.")
+    data_error = True
+if 'X_train_scaled_np' not in locals() or not isinstance(X_train_scaled_np, np.ndarray) or X_train_scaled_np.size == 0:
+    print("WARNING: X_train_scaled_np not found or is empty. Training history plots may be skipped.")
+    # Not critical to stop, but important for history plot
+if 'y_train_np' not in locals() or not isinstance(y_train_np, np.ndarray) or y_train_np.size == 0:
+    print("WARNING: y_train_np not found or is empty. Training history plots may be skipped.")
+    # Not critical to stop, but important for history plot
 
+if data_error:
+    raise RuntimeError("Missing critical test data (X_test_scaled_np, y_test_np). Please ensure your data loading and preprocessing cells have been run successfully.")
 
-
-
-# THESE ARE THE CRUCIAL LINES TO RUN AFTER CTRL+C
-# Get the best model found by the tuner
-best_hp = tuner.get_best_hyperparameters(num_trials=1)[0]
-best_dnn_model = tuner.get_best_models(num_models=1)[0]
-
-print(best_dnn_model.summary()) # Print the model summary to verify structure
-
-print(f"\nBest DNN Hyperparameters found:\n{best_hp.values}")
-
-# Now, evaluate the best_dnn_model on the final hold-out test set
-print("\nEvaluating Best DNN model on the final hold-out test set...")
+# --- 5. Make Predictions on Test Set ---
+print("\n--- Making Predictions with Best DNN model on Test Set ---")
 y_pred_dnn = best_dnn_model.predict(X_test_scaled_np).flatten()
 
-# Calculate ALL final metrics for DNN
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_squared_log_error, median_absolute_error, max_error
+# --- 6. Calculate ALL Evaluation Metrics for DNN ---
+print("\n--- Calculating Final Evaluation Metrics ---")
+y_true_eval = y_test_np.flatten() if y_test_np.ndim > 1 else y_test_np
+y_pred_eval = y_pred_dnn # Already flattened
 
-# Ensure y_test_np is available (from previous data loading/splitting)
-# You might need to re-run your data loading and preprocessing cells if you restart the kernel
-# For this example, assuming X_test_scaled_np and y_test_np are still in memory
+# Ensure y_true_eval and y_pred_eval are arrays of floats for metric functions
+y_true_eval = y_true_eval.astype(float)
+y_pred_eval = y_pred_eval.astype(float)
 
-mse_dnn = mean_squared_error(y_test_np, y_pred_dnn)
+mse_dnn = mean_squared_error(y_true_eval, y_pred_eval)
 rmse_dnn = np.sqrt(mse_dnn)
-mae_dnn = mean_absolute_error(y_test_np, y_pred_dnn)
-r2_dnn = r2_score(y_test_np, y_pred_dnn)
+mae_dnn = mean_absolute_error(y_true_eval, y_pred_eval)
+r2_dnn = r2_score(y_true_eval, y_pred_eval)
 
-# New metrics for DNN (ensure predictions are non-negative for MSLE/RMSLE)
-msle_dnn = mean_squared_log_error(y_test_np, np.maximum(0, y_pred_dnn))
-rmsle_dnn = np.sqrt(msle_dnn)
-medae_dnn = median_absolute_error(y_test_np, y_pred_dnn)
-max_err_dnn = max_error(y_test_np, y_pred_dnn)
+# For MSLE and RMSLE, values must be non-negative. Filter out any potential negatives.
+# If ipec_pd can be 0, MSLE/RMSLE are problematic as log(0) is undefined.
+# We filter for positive values for MSLE/RMSLE for robustness.
+# Adding a small epsilon for predictions if they are too close to zero but should be positive
+y_pred_msle = np.maximum(y_pred_eval, 1e-9) # Ensure predictions are slightly positive for log
 
-# MAPE calculation for DNN (handle division by zero)
-# Ensure all_results dictionary is defined, e.g., all_results = {}
-if 'all_results' not in locals() and 'all_results' not in globals():
-    all_results = {} # Define if not already defined
-if 0 in y_test_np:
-    non_zero_indices_dnn = y_test_np != 0
-    if np.sum(non_zero_indices_dnn) > 0:
-        mape_dnn = np.mean(np.abs((y_test_np[non_zero_indices_dnn] - y_pred_dnn[non_zero_indices_dnn]) / y_test_np[non_zero_indices_dnn])) * 100
-    else:
-        mape_dnn = np.nan
+positive_indices_for_msle = (y_true_eval > 0) & (y_pred_msle >= 0)
+if np.any(positive_indices_for_msle):
+    msle_dnn = mean_squared_log_error(y_true_eval[positive_indices_for_msle], y_pred_msle[positive_indices_for_msle])
+    rmsle_dnn = np.sqrt(msle_dnn)
 else:
-    mape_dnn = np.mean(np.abs((y_test_np - y_pred_dnn) / y_test_np)) * 100
+    msle_dnn = np.nan
+    rmsle_dnn = np.nan
+    print("Warning: No positive actual values found for MSLE/RMSLE calculation after filtering.")
+
+medae_dnn = median_absolute_error(y_true_eval, y_pred_eval)
+max_err_dnn = max_error(y_true_eval, y_pred_eval)
+
+# Calculate MAPE, handling division by zero for actual values
+non_zero_actual_indices = y_true_eval != 0
+if np.any(non_zero_actual_indices):
+    mape_dnn = np.mean(np.abs((y_true_eval[non_zero_actual_indices] - y_pred_eval[non_zero_actual_indices]) / y_true_eval[non_zero_actual_indices])) * 100
+else:
+    mape_dnn = np.nan # Or some other appropriate value if all y_test_np are zero
+    print("Warning: All actual values are zero; MAPE cannot be calculated meaningfully.")
+
+print(f"Final DNN Metrics:")
+print(f"  Test MSE: {mse_dnn:.4f}")
+print(f"  Test RMSE: {rmse_dnn:.4f}")
+print(f"  Test MAE: {mae_dnn:.4f}")
+print(f"  Test R2: {r2_dnn:.4f}")
+print(f"  Test MSLE: {msle_dnn:.4f}" if not np.isnan(msle_dnn) else "  Test MSLE: N/A (no positive actuals)")
+print(f"  Test RMSLE: {rmsle_dnn:.4f}" if not np.isnan(rmsle_dnn) else "  Test RMSLE: N/A (no positive actuals)")
+print(f"  Test MedAE: {medae_dnn:.4f}")
+print(f"  Test Max Error: {max_err_dnn:.4f}")
+print(f"  Test MAPE: {mape_dnn:.2f}%" if not np.isnan(mape_dnn) else "  Test MAPE: N/A (all actuals are zero)")
+
+# --- 7. Store Results in Dictionaries and Save Metrics to JSON ---
+current_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S") # Use a single timestamp for all saved files from this run
 
 all_results['Simple_DNN'] = {
     'Test_MSE': mse_dnn,
@@ -1037,156 +1030,136 @@ all_results['Simple_DNN'] = {
     'Test_MaxError': max_err_dnn,
     'Test_MAPE': mape_dnn
 }
-best_estimators['Simple_DNN'] = best_dnn_model # Store the best tuned Keras model
+best_estimators['Simple_DNN'] = best_dnn_model
+print("\nFinal metrics stored in 'all_results' and best model stored in 'best_estimators'.")
 
-print(f"Simple DNN Test RMSE: {rmse_dnn:.4f}")
-print(f"Simple DNN Test MAE: {mae_dnn:.4f}")
-print(f"Simple DNN Test R2: {r2_dnn:.4f}")
+# Save all_results dictionary to a JSON file
+metrics_filename = f'dnn_evaluation_metrics_{current_timestamp}.json'
+metrics_filepath = os.path.join(MODEL_SAVE_DIR, metrics_filename)
+try:
+    with open(metrics_filepath, 'w') as f:
+        json.dump(all_results['Simple_DNN'], f, indent=4) # Save just the DNN metrics
+    print(f"DNN evaluation metrics saved to: {metrics_filepath}")
+except Exception as e:
+    print(f"ERROR: Could not save evaluation metrics to JSON: {e}")
 
-# Generate and save plots for the DNN model
-print(f"Generating and saving plots for Simple_DNN (Prediction Diagnostics)...")
+
+# --- 8. Generate and Save Prediction Diagnostic Plots ---
 generate_model_plots('Simple_DNN', y_test_np, y_pred_dnn, feature_importances=None, feature_names=None)
-print(f"Plots for Simple_DNN (Prediction Diagnostics) saved successfully.")
-# gc.collect() # Only run if you are managing memory very tightly
-
-# --- Plotting Training History for the BEST DNN (after tuning) ---
-# You'll need to manually re-fit the best_dnn_model to get its history if tuner.search()
-# doesn't directly store the best run's history. Keras Tuner focuses on the best *model*,
-# not necessarily the full history of its final training.
-# A common approach is to get the best hyperparameters, build a new model with them,
-# and train it once on your full training data to capture its history.
-
-# For simplicity, if you want a history plot, we'll train the best model again
-# and capture its history. This is often what you'd report in a thesis.
-print("\n--- Training Best DNN Model for History Plot ---")
-# Ensure tuner.search_space_sizes() is available, or use a fixed epochs like 100
-# If you don't have tuner.search_space_sizes() after Ctrl+C, just use a reasonable number like 100 or 200 epochs.
-# It's better to use the best_hp to build a new model, then fit that, to get a fresh history plot.
-# Example:
-# best_model_rebuilt = build_model(best_hp)
-# history_best_dnn = best_model_rebuilt.fit(...)
-# For now, let's stick to your original code block for the fit.
-history_best_dnn = best_dnn_model.fit(X_train_scaled_np, y_train_np,
-                                     epochs=100, # Using 100 epochs as a default if tuner.search_space_sizes() is not directly accessible
-                                     batch_size=64,
-                                     validation_split=0.1,
-                                     callbacks=[
-                                         EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True, verbose=1),
-                                         ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-7, verbose=1)
-                                     ],
-                                     verbose=1)
-
-print("\n--- Generating BEST DNN Training History Plots ---")
-import matplotlib.pyplot as plt # Ensure matplotlib is imported
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-plt.figure(figsize=(14, 6))
-
-# Plot Training & Validation MAE
-plt.subplot(1, 2, 1)
-plt.plot(history_best_dnn.history['mae'], label='Training MAE', color='blue')
-plt.plot(history_best_dnn.history['val_mae'], label='Validation MAE', color='green', linestyle='--')
-plt.title('BEST DNN Training and Validation Mean Absolute Error', fontsize=14)
-plt.xlabel('Epochs', fontsize=12)
-plt.ylabel('Mean Absolute Error', fontsize=12)
-plt.legend(fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.7)
-
-# Plot Training & Validation Loss (MSE)
-plt.subplot(1, 2, 2)
-plt.plot(history_best_dnn.history['loss'], label='Training Loss (MSE)', color='red')
-plt.plot(history_best_dnn.history['val_loss'], label='Validation Loss (MSE)', color='purple', linestyle='--')
-plt.title('BEST DNN Training and Validation Loss', fontsize=14)
-plt.xlabel('Epochs', fontsize=12)
-plt.ylabel('Loss (Mean Squared Error)', fontsize=12)
-plt.legend(fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.7)
-
-plt.tight_layout()
-plot_filepath_history = os.path.join(FIGURE_DIR, f'{timestamp}_BEST_DNN_Training_History.png')
-plt.savefig(plot_filepath_history, dpi=FIGURE_DPI)
-plt.close()
-print(f"BEST DNN Training History Plots saved successfully to: {plot_filepath_history}")
-
-
-# Generate and save plots for the DNN model
-print(f"Generating and saving plots for Simple_DNN (Prediction Diagnostics)...")
-# HERE IS WHERE THE FUNCTION IS CALLED
-generate_model_plots('Simple_DNN', y_test_np, y_pred_dnn, feature_importances=None, feature_names=None)
-print(f"Plots for Simple_DNN (Prediction Diagnostics) saved successfully.")
+print("Prediction diagnostic plots saved successfully.")
 gc.collect()
 
+# --- 9. Retrain Best DNN Model to get a full training history for plotting ---
+# This creates the 'history_best_dnn' object that contains loss and MAE per epoch
+print("\n--- Retraining Best DNN Model (for training history plot) ---")
+history_best_dnn = None
+if 'X_train_scaled_np' not in locals() or not isinstance(X_train_scaled_np, np.ndarray) or X_train_scaled_np.size == 0:
+    print("WARNING: X_train_scaled_np not found or is empty. Skipping training history plot.")
+elif 'y_train_np' not in locals() or not isinstance(y_train_np, np.ndarray) or y_train_np.size == 0:
+    print("WARNING: y_train_np not found or is empty. Skipping training history plot.")
+else:
+    try:
+        # Clone the model to get a fresh training history
+        # Alternatively, you can use `best_dnn_model.optimizer.variables = []` if you want to reuse and clear optimizer state
+        # For a clean history, re-building or cloning is often safer.
+        # However, for simply getting the history from the best model, just calling .fit again works.
+        # Ensure your target metric (e.g., 'val_loss') is available from the model's compile step.
+        
+        # Keras models can be re-fit directly; previous history is overwritten.
+        # Using a small batch_size from best_hp if available, otherwise default to 64
+        batch_size_val = best_hp.get('batch_size', 64) if best_hp else 64 
+        history_best_dnn = best_dnn_model.fit(X_train_scaled_np, y_train_np,
+                                             epochs=best_hp.get('tuner/epochs', 100) if best_hp else 100,
+                                             batch_size=batch_size_val,
+                                             validation_split=0.1, # Keep consistency with tuner's validation split
+                                             callbacks=[
+                                                 tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True, verbose=0),
+                                                 tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-7, verbose=0)
+                                             ],
+                                             verbose=0) # Set verbose=0 to avoid lengthy output
+        print("Best DNN model retrained to capture full training history.")
+    except Exception as e:
+        print(f"ERROR during retraining for history plot: {e}")
+        print("Training history plots will not be generated.")
+        history_best_dnn = None
+
+# --- 10. Generate and Save Training History Plots (Loss & MAE) ---
+if history_best_dnn and history_best_dnn.history and 'loss' in history_best_dnn.history and 'val_loss' in history_best_dnn.history:
+    print("\n--- Generating BEST DNN Training History Plots (Thesis-Quality) ---")
+    # Use the current_timestamp for consistency
+    plt.figure(figsize=(16, 7))
+
+    # Plot 1: Training & Validation Loss (e.g., Mean Squared Error)
+    plt.subplot(1, 2, 1)
+    plt.plot(history_best_dnn.history['loss'], label='Training Loss', color='darkred', linewidth=2)
+    plt.plot(history_best_dnn.history['val_loss'], label='Validation Loss', color='firebrick', linestyle='--', linewidth=2)
+    plt.title(f'Training and Validation Loss (MSE)', fontsize=16)
+    plt.xlabel('Epoch', fontsize=12)
+    plt.ylabel('Loss (Mean Squared Error)', fontsize=12)
+    plt.legend(fontsize=10)
+    plt.grid(True, linestyle=':', alpha=0.7)
+    plt.tight_layout()
+
+    # Plot 2: Training & Validation MAE (Mean Absolute Error)
+    # Check if 'mae' and 'val_mae' are available in history
+    if 'mae' in history_best_dnn.history and 'val_mae' in history_best_dnn.history:
+        plt.subplot(1, 2, 2)
+        plt.plot(history_best_dnn.history['mae'], label='Training MAE', color='darkblue', linewidth=2)
+        plt.plot(history_best_dnn.history['val_mae'], label='Validation MAE', color='cornflowerblue', linestyle='--', linewidth=2)
+        plt.title(f'Training and Validation MAE', fontsize=16)
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel('Mean Absolute Error', fontsize=12)
+        plt.legend(fontsize=10)
+        plt.grid(True, linestyle=':', alpha=0.7)
+        plt.tight_layout()
+    else:
+        print("Warning: 'mae' or 'val_mae' not found in model history. MAE plot skipped.")
+        # If MAE is not logged, this subplot might be empty or show an error, inform user.
+        # You might want to remove the second subplot if MAE is consistently missing
+        # For now, it will just show a blank subplot if no 'mae' is present.
+
+    # Save the combined figure
+    plot_filepath_history = os.path.join(FIGURE_DIR, f'{current_timestamp}_BEST_DNN_Regression_History_Metrics.png')
+    plt.savefig(plot_filepath_history, dpi=FIGURE_DPI)
+    plt.close()
+    print(f"Regression Model Training History (Loss & MAE) Plots saved successfully to: {plot_filepath_history}")
+else:
+    print("Skipping training history plots due to missing training data, retraining error, or incomplete history object.")
+
+# --- 11. Save the Best Keras Model (Architecture and Weights) ---
+print("\n--- Saving the Best Keras Model ---")
+model_save_path = os.path.join(MODEL_SAVE_DIR, f'best_dnn_model_{current_timestamp}.keras') # Recommended format for TF 2.x
+try:
+    best_dnn_model.save(model_save_path)
+    print(f"Best DNN model saved to: {model_save_path}")
+except Exception as e:
+    print(f"ERROR: Could not save the best Keras model: {e}")
+
+# --- 12. Save the Best Hyperparameters to a JSON file ---
+if best_hp: # Only save if best_hp was successfully retrieved
+    print("\n--- Saving Best Hyperparameters to File ---")
+    config_filename = f'best_dnn_hyperparameters_{current_timestamp}.json'
+    config_filepath = os.path.join(MODEL_SAVE_DIR, config_filename)
+
+    try:
+        with open(config_filepath, 'w') as f:
+            json.dump(best_hp.values, f, indent=4)
+        print(f"Best DNN Hyperparameters saved to: {config_filepath}")
+    except Exception as e:
+        print(f"ERROR: Could not save best hyperparameters to file: {e}")
+else:
+    print("Skipping saving hyperparameters as best_hp object was not retrieved.")
+
+print("\n--- ALL REQUESTED POST-INTERRUPTION OPERATIONS COMPLETE. ---")
+print("You can now safely restart your kernel if desired.")
+gc.collect() # Final garbage collection
 
 
-import matplotlib.pyplot as plt
-import os
-from datetime import datetime
-import numpy as np # Ensure numpy is imported
-
-# Assuming FIGURE_DIR is defined, e.g.:
-# FIGURE_DIR = '/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/docs/figures'
-# os.makedirs(FIGURE_DIR, exist_ok=True)
-
-# Ensure 'history_best_dnn' object is available after training the best model
-# This object comes from the .fit() call of your best_dnn_model
-# For example:
-# history_best_dnn = best_dnn_model.fit(X_train_scaled_np, y_train_np,
-#                                      epochs=100,
-#                                      batch_size=64,
-#                                      validation_split=0.1,
-#                                      callbacks=[
-#                                          EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True, verbose=1),
-#                                          ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-7, verbose=1)
-#                                      ],
-#                                      verbose=1)
-
-print("\n--- Generating BEST DNN Regression Model Training History Plots (Thesis-Quality) ---")
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-plt.figure(figsize=(16, 7)) # Adjust figure size for better appearance and readability
-
-# Plot 1: Training & Validation Loss (Mean Squared Error)
-plt.subplot(1, 2, 1) # 1 row, 2 columns, first plot
-plt.plot(history_best_dnn.history['loss'], label='Training Loss', color='darkred', linewidth=2)
-plt.plot(history_best_dnn.history['val_loss'], label='Validation Loss', color='firebrick', linestyle='--', linewidth=2)
-plt.title(f'Training and Validation Loss (MSE)', fontsize=16)
-plt.xlabel('Epoch', fontsize=12)
-plt.ylabel('Loss (Mean Squared Error)', fontsize=12)
-plt.legend(fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.7)
-plt.tight_layout() # Ensures elements do not overlap
-
-# Plot 2: Training & Validation MAE (Mean Absolute Error)
-plt.subplot(1, 2, 2) # 1 row, 2 columns, second plot
-plt.plot(history_best_dnn.history['mae'], label='Training MAE', color='darkblue', linewidth=2)
-plt.plot(history_best_dnn.history['val_mae'], label='Validation MAE', color='cornflowerblue', linestyle='--', linewidth=2)
-plt.title(f'Training and Validation MAE', fontsize=16)
-plt.xlabel('Epoch', fontsize=12)
-plt.ylabel('Mean Absolute Error', fontsize=12)
-plt.legend(fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.7)
-plt.tight_layout() # Ensures elements do not overlap
-
-# Save the combined figure
-plot_filepath_history = os.path.join(FIGURE_DIR, f'{timestamp}_BEST_DNN_Regression_History_Metrics.png')
-plt.savefig(plot_filepath_history, dpi=300) # Ensure high DPI for thesis
-plt.close() # Close the figure to free up memory
-
-print(f"Regression Model Training History (Loss & MAE) Plots saved successfully to: {plot_filepath_history}")
 
 
 
 
 
-
-# Assuming 'tuner' object and 'best_hp' are already defined from previous steps
-
-# Get the best hyperparameters
-best_hp = tuner.get_best_hyperparameters(num_trials=1)[0]
-
-print("\n--- Best DNN Hyperparameters Found ---")
-# This will print the dictionary representation of the best hyperparameters
-print(best_hp.values)
 
 
 
