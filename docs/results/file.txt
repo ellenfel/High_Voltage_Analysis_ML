@@ -1,2 +1,0 @@
-Best DNN Hyperparameters found:
-{'num_layers': 2, 'units_0': 512, 'activation_0': 'relu', 'l2_lambda_0': 5.005115883734732e-05, 'dropout_0': 0.2, 'units_1': 448, 'activation_1': 'relu', 'l2_lambda_1': 0.005496054400493782, 'dropout_1': 0.30000000000000004, 'learning_rate': 0.001, 'units_2': 320, 'activation_2': 'relu', 'l2_lambda_2': 0.0008832783459212954, 'dropout_2': 0.4, 'units_3': 192, 'activation_3': 'tanh', 'l2_lambda_3': 0.00013494772704967807, 'dropout_3': 0.30000000000000004, 'tuner/epochs': 12, 'tuner/initial_epoch': 0, 'tuner/bracket': 2, 'tuner/round': 0}

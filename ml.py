@@ -35,9 +35,10 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from xgboost import XGBRegressor
 
-
-# reading data (this part is from your existing code)
 df = pd.read_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/df_ml_ready.csv')
+target_column_desc = df['ipec_pd'].describe()
+print(f"df.shape: {df.shape}")
+
 
 # put the target column 'ipec_pd' at the end of the DataFrame
 target_column = df.pop('ipec_pd')
@@ -48,18 +49,10 @@ gc.collect()
 X = df.drop(columns=['ipec_pd'])
 y = df['ipec_pd']
 
-
-
-
-
-
 # --- 0. Setup and Configuration ---
 print("--- Initializing Setup and Configuration ---")
 # Directory for saving figures
 FIGURE_DIR = '/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/docs/figures'
-# Create the directory if it doesn't exist
-os.makedirs(FIGURE_DIR, exist_ok=True)
-print(f"Figures will be saved to: {FIGURE_DIR}")
 
 # Plot styling for consistency
 plt.style.use('seaborn-v0_8-whitegrid')
@@ -75,7 +68,6 @@ print(f"Training set size: {X_train.shape[0]} samples")
 print(f"Test set size: {X_test.shape[0]} samples")
 gc.collect()
 
-
 # --- 2. Feature Scaling ---
 print("\n--- 2. Scaling Features ---")
 # Fit on training data only to prevent data leakage
@@ -88,204 +80,81 @@ X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_test.columns)
 print("Features scaled using StandardScaler.")
 gc.collect()
 
+### 3. Model Training and Initial Evaluation
+print("\n--- 4. Model Training and Initial Evaluation ---")
 
-# --- 3. Helper Function for Plotting ---
-def generate_model_plots(model_name, y_true, y_pred, feature_importances=None, feature_names=None):
+# Note, y_train and y_test are NOT transformed for this baseline
+
+def train_and_evaluate_model(model, X_train, y_train, X_test, y_test, model_name="Model"):
     """
-    Generates and saves a set of diagnostic plots for a regression model.
+    Trains a given model, makes predictions, and evaluates its performance.
     """
-    print(f"Generating plots for {model_name}...")
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # --- Figure 1: Actual vs. Predicted ---
-    plt.figure(figsize=(10, 7))
-    sns.scatterplot(x=y_true, y=y_pred, alpha=0.5, s=50, edgecolor='k')
-    plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', lw=2, label='Perfect Prediction')
-    plt.title(f'{model_name}: Actual vs. Predicted Values', fontsize=16)
-    plt.xlabel('Actual ipec_pd', fontsize=12)
-    plt.ylabel('Predicted ipec_pd', fontsize=12)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_ActualVsPredicted.png'), dpi=FIGURE_DPI)
-    plt.close()
+    print(f"\nTraining {model_name}...")
+    start_time = datetime.now()
+    model.fit(X_train, y_train)
+    end_time = datetime.now()
+    training_time = (end_time - start_time).total_seconds()
+    print(f"Training completed in {training_time:.2f} seconds.")
 
-    # --- Figure 2: Residuals Plot ---
-    residuals = y_true - y_pred
-    plt.figure(figsize=(10, 7))
-    sns.scatterplot(x=y_pred, y=residuals, alpha=0.5, s=50, edgecolor='k')
-    plt.axhline(y=0, color='r', linestyle='--', lw=2, label='Zero Error')
-    plt.title(f'{model_name}: Residuals Plot', fontsize=16)
-    plt.xlabel('Predicted ipec_pd', fontsize=12)
-    plt.ylabel('Residuals (Actual - Predicted)', fontsize=12)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_Residuals.png'), dpi=FIGURE_DPI)
-    plt.close()
+    print(f"Evaluating {model_name}...")
+    y_pred = model.predict(X_test)
 
-    # --- Figure 3: Distribution of Residuals ---
-    plt.figure(figsize=(10, 7))
-    sns.histplot(residuals, kde=True, bins=50)
-    plt.title(f'{model_name}: Distribution of Residuals', fontsize=16)
-    plt.xlabel('Residual Value', fontsize=12)
-    plt.ylabel('Frequency', fontsize=12)
-    plt.tight_layout()
-    plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_ResidualsDistribution.png'), dpi=FIGURE_DPI)
-    plt.close()
+    # Ensure predictions don't go negative if your target truly cannot be negative
+    # (ipec_pd min is 0.0, so negative predictions are physically impossible)
+    y_pred[y_pred < 0] = 0
 
-    # --- Figure 4: Feature Importance (if available) ---
-    if feature_importances is not None and feature_names is not None:
-        importance_df = pd.DataFrame({
-            'feature': feature_names,
-            'importance': feature_importances
-        }).sort_values('importance', ascending=False).head(20) # Top 20 features
-
-        plt.figure(figsize=(12, 8))
-        sns.barplot(x='importance', y='feature', data=importance_df, palette='viridis')
-        plt.title(f'{model_name}: Top 20 Feature Importances', fontsize=16)
-        plt.xlabel('Importance Score', fontsize=12)
-        plt.ylabel('Features', fontsize=12)
-        plt.tight_layout()
-        plt.savefig(os.path.join(FIGURE_DIR, f'{timestamp}_{model_name}_FeatureImportance.png'), dpi=FIGURE_DPI)
-        plt.close()
-        
-    print(f"Plots for {model_name} saved successfully.")
-    gc.collect()
-
-
-# --- 4. Model Selection, Tuning, and Cross-Validation ---
-print("\n--- 4. Starting Model Training, Tuning, and Evaluation ---")
-# Define models and their hyperparameter grids for GridSearchCV
-models_and_params = {
-    'RandomForestRegressor': {
-        'model': RandomForestRegressor(random_state=42, n_jobs=-1),
-        'params': {
-            'n_estimators': [100, 200],
-            'max_depth': [10, 20, None],
-            'min_samples_leaf': [1, 2, 4]
-        }
-    },
-    'XGBRegressor': {
-        'model': XGBRegressor(random_state=42, n_jobs=-1, tree_method='hist', objective='reg:squarederror'),
-        'params': {
-            'n_estimators': [100, 200],
-            'learning_rate': [0.05, 0.1],
-            'max_depth': [5, 7],
-            'subsample': [0.8, 1.0]
-        }
-    },
-    'GradientBoostingRegressor': {
-        'model': GradientBoostingRegressor(random_state=42),
-        'params': {
-            'n_estimators': [100, 200],
-            'learning_rate': [0.05, 0.1],
-            'max_depth': [3, 5]
-        }
-    }
-}
-
-
-# Setup K-Fold cross-validation
-kf = KFold(n_splits=5, shuffle=True, random_state=42)
-print(f"Using K-Fold Cross-Validation with {kf.get_n_splits()} splits.")
-
-# Store results
-all_results = {}
-best_estimators = {}
-
-for name, config in models_and_params.items():
-    print(f"\n--- Processing Model: {name} ---")
-    
-    # GridSearchCV handles the cross-validation
-    grid_search = GridSearchCV(
-        estimator=config['model'],
-        param_grid=config['params'],
-        cv=kf,
-        scoring='neg_root_mean_squared_error', # Optimize for RMSE
-        n_jobs=-1, # Use all available cores
-        verbose=3  # KEY CHANGE: Set to 2 for per-fit feedback. Use 3 for even more detail.
-    )
-    
-    # Fit on the training data
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting GridSearchCV for {name}. You will now see progress for each fit.")
-    grid_search.fit(X_train_scaled, y_train)
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] GridSearchCV for {name} complete.")
-    
-    # Store the best estimator
-    best_model = grid_search.best_estimator_
-    best_estimators[name] = best_model
-    
-    print(f"\nBest parameters found for {name}: {grid_search.best_params_}")
-    print(f"Best CV RMSE score for {name}: {-grid_search.best_score_:.4f}")
-
-    # Evaluate the best model on the hold-out test set
-    print(f"\nEvaluating best {name} model on the final hold-out test set...")
-    y_pred = best_model.predict(X_test_scaled)
-    
-    # Calculate final metrics
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
-    
-    all_results[name] = {'Test_MSE': mse, 'Test_RMSE': rmse, 'Test_MAE': mae, 'Test_R2': r2}
 
-    # Generate and save plots for the best model
-    print(f"Generating and saving plots for {name}...")
-    feature_importances = best_model.feature_importances_ if hasattr(best_model, 'feature_importances_') else None
-    generate_model_plots(name, y_test, y_pred, feature_importances, X_train.columns)
-    print(f"Plots for {name} saved successfully.")
+    print(f"--- {model_name} Performance ---")
+    print(f"Mean Squared Error (MSE): {mse:.4f}")
+    print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")
+    print(f"Mean Absolute Error (MAE): {mae:.4f}")
+    print(f"R-squared (R2): {r2:.4f}")
+
+    # Plotting Actual vs. Predicted (Sample)
+    plt.figure(figsize=(10, 6))
+    plt.scatter(y_test, y_pred, alpha=0.3)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+    plt.xlabel("Actual ipec_pd")
+    plt.ylabel("Predicted ipec_pd")
+    plt.title(f'{model_name}: Actual vs. Predicted ipec_pd (Test Set)')
+    plt.grid(True)
+    plt.tight_layout()
+    os.makedirs(FIGURE_DIR, exist_ok=True)
+    plt.savefig(os.path.join(FIGURE_DIR, f'{model_name.lower().replace(" ", "_")}_actual_vs_predicted.png'), dpi=FIGURE_DPI)
+    plt.show()
+
+    # Residual Plot
+    residuals = y_test - y_pred
+    plt.figure(figsize=(10, 6))
+    sns.histplot(residuals, kde=True, bins=50)
+    plt.title(f'{model_name}: Residuals Distribution')
+    plt.xlabel('Residuals (Actual - Predicted)')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(FIGURE_DIR, f'{model_name.lower().replace(" ", "_")}_residuals_distribution.png'), dpi=FIGURE_DPI)
+    plt.show()
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(y_pred, residuals, alpha=0.3)
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.xlabel("Predicted ipec_pd")
+    plt.ylabel("Residuals")
+    plt.title(f'{model_name}: Residuals vs. Predicted Values')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(FIGURE_DIR, f'{model_name.lower().replace(" ", "_")}_residuals_vs_predicted.png'), dpi=FIGURE_DPI)
+    plt.show()
 
     gc.collect()
 
-print("\n\n--- 5. Final Model Performance Summary ---")
-for name, metrics in all_results.items():
-    print(f"\nModel: {name}")
-    for metric, value in metrics.items():
-        print(f"  {metric}: {value:.4f}")
-    print("-" * 30)
-
-# --- 6. Correlation Analysis (from your original code) ---
-print("\n--- 6. Feature Correlation Analysis ---")
-print("Calculating correlation matrix...")
-correlation_matrix = X.corr()
-
-plt.figure(figsize=(22, 20))
-sns.heatmap(correlation_matrix, annot=False, cmap='coolwarm', fmt=".1f")
-plt.title('Correlation Matrix of Features', fontsize=20)
-plt.xticks(rotation=90, fontsize=10)
-plt.yticks(rotation=0, fontsize=10)
-plt.tight_layout()
-corr_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-plt.savefig(os.path.join(FIGURE_DIR, f'{corr_timestamp}_FeatureCorrelationMatrix.png'), dpi=FIGURE_DPI)
-plt.close()
-print("Correlation heatmap saved.")
-gc.collect()
-
-print("\n--- Pipeline Finished ---")
-print("Check your figures directory for all generated plots.")
+    return {"model": model, "rmse": rmse, "mae": mae, "r2": r2, "training_time": training_time}
 
 
-### --- TODO for Advanced Steps (as per your list) --- ###
-#
-# 1. ERROR ANALYSIS:
-#    - You now have residuals plots. Look for patterns:
-#      - Is the error variance constant (homoscedasticity)? Or does it change with the predicted value?
-#      - Are there clusters of points with high errors? You could investigate these samples in your original data.
-#
-# 2. ENSEMBLE MODELING (ADVANCED):
-#    - You could combine your best models using a VotingRegressor.
-#      from sklearn.ensemble import VotingRegressor
-#      # Example:
-#      # vote_reg = VotingRegressor(estimators=[('xgb', best_estimators['XGBRegressor']), ('rf', best_estimators['RandomForestRegressor'])])
-#      # vote_reg.fit(X_train_scaled, y_train)
-#      # This often yields a more robust, generalized model.
-#
-# 3. MODEL EXPLAINABILITY (XAI):
-#    - For your thesis, using SHAP or LIME is highly recommended.
-#      import shap
-#      # Example with your best XGBoost model:
-#      # explainer = shap.TreeExplainer(best_estimators['XGBRegressor'])
-#      # shap_values = explainer.shap_values(X_test_scaled)
-#      # shap.summary_plot(shap_values, X_test_scaled, show=False)
-#      # plt.savefig(os.path.join(FIGURE_DIR, 'SHAP_Summary_Plot.png'), dpi=FIGURE_DPI)
-#      # This explains not just *which* features are important, but *how* they impact predictions.
+# Initialize and train a RandomForestRegressor as a baseline
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1) # n_jobs=-1 uses all available cores
+rf_results = train_and_evaluate_model(rf_model, X_train_scaled, y_train, X_test_scaled, y_test, model_name="Random Forest Regressor")
