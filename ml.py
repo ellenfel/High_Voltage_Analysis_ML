@@ -247,31 +247,111 @@ print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
 all_model_results["Enhanced Deep Neural Network"] = dnn_results
 
 # ==============================================================================
-# 6.5 Visualize DNN Training History
+# 6.5 Enhanced Visualization of DNN Training History (Thesis Quality)
 # ==============================================================================
 
-# Plot training history
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+# Create figure with constrained layout for better spacing
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), 
+                               constrained_layout=True)
 
-# Loss plot
-ax1.plot(history.history['loss'], label='Training Loss', linewidth=2)
-ax1.plot(history.history['val_loss'], label='Validation Loss', linewidth=2)
-ax1.set_title('Enhanced DNN Training Loss')
-ax1.set_xlabel('Epoch')
-ax1.set_ylabel('Loss')
-ax1.legend()
-ax1.grid(True, alpha=0.3)
+# Custom color palette (colorblind-friendly)
+train_color = '#1f77b4'   # Professional blue
+val_color = '#d62728'     # Distinct red
+grid_color = '#f0f0f0'    # Light gray grid
+background_color = 'white'
 
-# MAE plot
-ax2.plot(history.history['mae'], label='Training MAE', linewidth=2)
-ax2.plot(history.history['val_mae'], label='Validation MAE', linewidth=2)
-ax2.set_title('Enhanced DNN Training MAE')
-ax2.set_xlabel('Epoch')
-ax2.set_ylabel('MAE')
-ax2.legend()
-ax2.grid(True, alpha=0.3)
+# Apply global styling
+plt.rcParams.update({
+    'font.family': 'serif',          # Thesis-appropriate font
+    'font.size': 12,                 # Base font size
+    'axes.labelpad': 12,             # Axis label padding
+    'axes.edgecolor': 'black',       # Axis edge color
+    'axes.linewidth': 0.8,           # Axis line thickness
+})
 
-plt.tight_layout()
+# ===== Loss Plot =====
+# Smooth lines with increased thickness and custom styles
+ax1.plot(history.history['loss'], 
+         label='Training Loss', 
+         color=train_color,
+         linewidth=3,
+         alpha=0.9,
+         solid_capstyle='round')
+
+ax1.plot(history.history['val_loss'], 
+         label='Validation Loss', 
+         color=val_color,
+         linewidth=3,
+         alpha=0.9,
+         linestyle='--',  # Dashed for validation
+         dash_capstyle='round')
+
+# Formatting
+ax1.set_title('Enhanced DNN Training Loss', 
+             fontsize=14, fontweight='bold', pad=15)
+ax1.set_xlabel('Epoch', fontsize=12, labelpad=10)
+ax1.set_ylabel('Loss', fontsize=12, labelpad=10)
+ax1.legend(frameon=True, framealpha=0.9, 
+          facecolor=background_color, edgecolor='gray')
+ax1.grid(True, color=grid_color, linestyle='-', linewidth=0.7)
+
+# Set background and spines
+ax1.set_facecolor(background_color)
+for spine in ax1.spines.values():
+    spine.set_visible(True)
+    spine.set_color('black')
+    spine.set_linewidth(0.8)
+
+# ===== MAE Plot =====
+ax2.plot(history.history['mae'], 
+         label='Training MAE', 
+         color=train_color,
+         linewidth=3,
+         alpha=0.9,
+         solid_capstyle='round')
+
+ax2.plot(history.history['val_mae'], 
+         label='Validation MAE', 
+         color=val_color,
+         linewidth=3,
+         alpha=0.9,
+         linestyle='--',  # Dashed for validation
+         dash_capstyle='round')
+
+# Formatting
+ax2.set_title('Enhanced DNN Training MAE', 
+             fontsize=14, fontweight='bold', pad=15)
+ax2.set_xlabel('Epoch', fontsize=12, labelpad=10)
+ax2.set_ylabel('MAE', fontsize=12, labelpad=10)
+ax2.legend(frameon=True, framealpha=0.9, 
+          facecolor=background_color, edgecolor='gray')
+ax2.grid(True, color=grid_color, linestyle='-', linewidth=0.7)
+
+# Set background and spines
+ax2.set_facecolor(background_color)
+for spine in ax2.spines.values():
+    spine.set_visible(True)
+    spine.set_color('black')
+    spine.set_linewidth(0.8)
+
+# ===== Final Adjustments =====
+# Set consistent y-axis scaling if needed
+# min_loss = min(min(history.history['loss']), min(history.history['val_loss']))
+# max_loss = max(max(history.history['loss']), max(history.history['val_loss']))
+# ax1.set_ylim(min_loss * 0.95, max_loss * 1.05)
+
+# Save in multiple formats for thesis publication
+figure_base = os.path.join(FIGURE_DIR, 'enhanced_dnn_training_history')
+
+# High-resolution PNG
+plt.savefig(figure_base + '.png', dpi=600, bbox_inches='tight')
+
+# Vector formats for publications
+plt.savefig(figure_base + '.pdf', bbox_inches='tight', transparent=True)
+plt.savefig(figure_base + '.svg', bbox_inches='tight', transparent=True)
+
+print(f"Training history figures saved to: {figure_base}.[png/pdf/svg]")
+
 plt.show()
 
 # Garbage collection
