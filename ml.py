@@ -246,6 +246,10 @@ print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
 
 all_model_results["Enhanced Deep Neural Network"] = dnn_results
 
+# ==============================================================================
+# 6.5 Visualize DNN Training History
+# ==============================================================================
+
 # Plot training history
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
 
