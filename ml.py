@@ -225,6 +225,7 @@ callbacks = [
 print(f"Training enhanced DNN with {dnn_params['num_layers']} layers...")
 print(f"Architecture: {' -> '.join(map(str, dnn_params['units']))} -> 1")
 
+start_time = datetime.now()  # Add start time tracking
 history = dnn_model.fit(
     X_train_scaled, y_train,
     batch_size=dnn_params["batch_size"],
@@ -244,11 +245,13 @@ rmse = np.sqrt(mse)
 mae = mean_absolute_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 
-# Store results
+# Store results (matching format of other models)
+training_time_dnn = (datetime.now() - start_time).total_seconds()
 dnn_results = {
-    'RMSE': rmse,
-    'MAE': mae,
-    'R-squared': r2,
+    'rmse': rmse,  # Changed key to match other models
+    'mae': mae,    # Changed key to match other models
+    'r2': r2,      # Changed key to match other models
+    'training_time': training_time_dnn,  # Added missing training time
     'predictions': y_pred,
     'history': history.history
 }
@@ -396,7 +399,7 @@ plt.show()
 gc.collect()
 
 # ==============================================================================
-# 7. Final Results Comparison and Export
+# 9. Final Results Comparison and Export
 # ==============================================================================
 print("\n--- Comparing Final Model Performance ---")
 results_df = pd.DataFrame({
@@ -416,3 +419,139 @@ print(results_df.to_string(index=False))
 output_path = os.path.join(RESULTS_DIR, 'model_comparison_results.csv')
 results_df.to_csv(output_path, index=False)
 print(f"\nResults successfully saved to: {output_path}")
+
+# ==============================================================================
+# 10. Thesis-Quality Model Comparison Visualizations
+# ==============================================================================
+
+# --- 10.1 Model Performance Comparison Bar Chart ---
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
+
+# Define professional color palette
+colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#4E6E58']
+
+# RMSE Comparison
+bars1 = ax1.bar(results_df['Model'], results_df['RMSE'], color=colors, alpha=0.8)
+ax1.set_title('Model Performance: RMSE', fontsize=14, fontweight='bold', pad=15)
+ax1.set_ylabel('RMSE', fontsize=12)
+ax1.tick_params(axis='x', rotation=45)
+ax1.grid(True, alpha=0.3, axis='y')
+
+# Add value labels on bars
+for bar in bars1:
+    height = bar.get_height()
+    ax1.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+             f'{height:.3f}', ha='center', va='bottom', fontsize=10)
+
+# MAE Comparison  
+bars2 = ax2.bar(results_df['Model'], results_df['MAE'], color=colors, alpha=0.8)
+ax2.set_title('Model Performance: MAE', fontsize=14, fontweight='bold', pad=15)
+ax2.set_ylabel('MAE', fontsize=12)
+ax2.tick_params(axis='x', rotation=45)
+ax2.grid(True, alpha=0.3, axis='y')
+
+# Add value labels on bars
+for bar in bars2:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+             f'{height:.3f}', ha='center', va='bottom', fontsize=10)
+
+# R² Comparison
+bars3 = ax3.bar(results_df['Model'], results_df['R2'], color=colors, alpha=0.8)
+ax3.set_title('Model Performance: R² Score', fontsize=14, fontweight='bold', pad=15)
+ax3.set_ylabel('R² Score', fontsize=12)
+ax3.tick_params(axis='x', rotation=45)
+ax3.grid(True, alpha=0.3, axis='y')
+ax3.set_ylim(0, 1)  # R² typically ranges 0-1
+
+# Add value labels on bars
+for bar in bars3:
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+             f'{height:.3f}', ha='center', va='bottom', fontsize=10)
+
+# Save comparison chart
+comparison_path = os.path.join(FIGURE_DIR, 'model_performance_comparison')
+plt.savefig(comparison_path + '.png', dpi=600, bbox_inches='tight')
+plt.savefig(comparison_path + '.svg', bbox_inches='tight', transparent=True)
+print(f"Model comparison chart saved to: {comparison_path}.[png/svg]")
+plt.show()
+
+# --- 10.2 Prediction vs Actual Scatter Plot (Best Model) ---
+best_model_name = results_df.iloc[0]['Model']
+best_model_results = all_model_results[best_model_name]
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 8), constrained_layout=True)
+
+# Get predictions from best model
+if best_model_name == "Deep Neural Network":
+    y_pred_best = best_model_results['predictions']
+else:
+    y_pred_best = best_model_results['model'].predict(X_test_scaled)
+    y_pred_best[y_pred_best < 0] = 0  # Ensure non-negative
+
+# Create scatter plot
+scatter = ax.scatter(y_test, y_pred_best, alpha=0.6, c='#2E86AB', s=50, edgecolors='white', linewidth=0.5)
+
+# Perfect prediction line (y=x)
+min_val = min(min(y_test), min(y_pred_best))
+max_val = max(max(y_test), max(y_pred_best))
+ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, alpha=0.8, label='Perfect Prediction')
+
+# Formatting
+ax.set_title(f'Prediction vs Actual Values - {best_model_name}', fontsize=16, fontweight='bold', pad=20)
+ax.set_xlabel('Actual Values', fontsize=14)
+ax.set_ylabel('Predicted Values', fontsize=14)
+ax.legend(fontsize=12)
+ax.grid(True, alpha=0.3)
+
+# Add R² annotation
+r2_text = f'R² = {best_model_results["r2"]:.4f}'
+ax.text(0.05, 0.95, r2_text, transform=ax.transAxes, fontsize=14, 
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+# Save scatter plot
+scatter_path = os.path.join(FIGURE_DIR, f'prediction_vs_actual_{best_model_name.lower().replace(" ", "_")}')
+plt.savefig(scatter_path + '.png', dpi=600, bbox_inches='tight')
+plt.savefig(scatter_path + '.svg', bbox_inches='tight', transparent=True)
+print(f"Prediction vs actual plot saved to: {scatter_path}.[png/svg]")
+plt.show()
+
+# --- 10.3 Residuals Plot (Best Model) ---
+residuals = y_test - y_pred_best
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), constrained_layout=True)
+
+# Residuals vs Predicted
+ax1.scatter(y_pred_best, residuals, alpha=0.6, c='#A23B72', s=50, edgecolors='white', linewidth=0.5)
+ax1.axhline(y=0, color='r', linestyle='--', linewidth=2, alpha=0.8)
+ax1.set_title(f'Residuals vs Predicted - {best_model_name}', fontsize=14, fontweight='bold', pad=15)
+ax1.set_xlabel('Predicted Values', fontsize=12)
+ax1.set_ylabel('Residuals', fontsize=12)
+ax1.grid(True, alpha=0.3)
+
+# Residuals histogram
+ax2.hist(residuals, bins=30, alpha=0.7, color='#F18F01', edgecolor='black', linewidth=0.5)
+ax2.set_title(f'Residuals Distribution - {best_model_name}', fontsize=14, fontweight='bold', pad=15)
+ax2.set_xlabel('Residuals', fontsize=12)
+ax2.set_ylabel('Frequency', fontsize=12)
+ax2.grid(True, alpha=0.3, axis='y')
+
+# Add normal distribution overlay
+from scipy import stats
+mu, sigma = stats.norm.fit(residuals)
+x_norm = np.linspace(residuals.min(), residuals.max(), 100)
+y_norm = stats.norm.pdf(x_norm, mu, sigma) * len(residuals) * (residuals.max() - residuals.min()) / 30
+ax2.plot(x_norm, y_norm, 'r-', linewidth=2, alpha=0.8, label=f'Normal (μ={mu:.3f}, σ={sigma:.3f})')
+ax2.legend()
+
+# Save residuals plot
+residuals_path = os.path.join(FIGURE_DIR, f'residuals_analysis_{best_model_name.lower().replace(" ", "_")}')
+plt.savefig(residuals_path + '.png', dpi=600, bbox_inches='tight')
+plt.savefig(residuals_path + '.svg', bbox_inches='tight', transparent=True)
+print(f"Residuals analysis plot saved to: {residuals_path}.[png/svg]")
+plt.show()
+
+print("\n" + "="*80)
+print("All thesis-quality figures have been generated and saved!")
+print("="*80)
