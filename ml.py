@@ -241,13 +241,13 @@ dnn_results = {
     'history': history.history
 }
 
-print(f"\n--- Enhanced Deep Neural Network Performance ---")
+print(f"\n--- Deep Neural Network Performance ---")
 print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
 
-all_model_results["Enhanced Deep Neural Network"] = dnn_results
+all_model_results["Deep Neural Network"] = dnn_results
 
 # ==============================================================================
-# 6.5 Enhanced Visualization of DNN Training History (Thesis Quality)
+# 6.5 Visualization of DNN Training History (Thesis Quality)
 # ==============================================================================
 
 # Create figure with constrained layout for better spacing
@@ -287,7 +287,7 @@ ax1.plot(history.history['val_loss'],
          dash_capstyle='round')
 
 # Formatting
-ax1.set_title('Enhanced DNN Training Loss', 
+ax1.set_title('DNN Training Loss', 
              fontsize=14, fontweight='bold', pad=15)
 ax1.set_xlabel('Epoch', fontsize=12, labelpad=10)
 ax1.set_ylabel('Loss', fontsize=12, labelpad=10)
@@ -319,7 +319,7 @@ ax2.plot(history.history['val_mae'],
          dash_capstyle='round')
 
 # Formatting
-ax2.set_title('Enhanced DNN Training MAE', 
+ax2.set_title('DNN Training MAE', 
              fontsize=14, fontweight='bold', pad=15)
 ax2.set_xlabel('Epoch', fontsize=12, labelpad=10)
 ax2.set_ylabel('MAE', fontsize=12, labelpad=10)
@@ -347,7 +347,7 @@ figure_base = os.path.join(FIGURE_DIR, 'enhanced_dnn_training_history')
 plt.savefig(figure_base + '.png', dpi=600, bbox_inches='tight')
 
 # Vector formats for publications
-plt.savefig(figure_base + '.pdf', bbox_inches='tight', transparent=True)
+#plt.savefig(figure_base + '.pdf', bbox_inches='tight', transparent=True)
 plt.savefig(figure_base + '.svg', bbox_inches='tight', transparent=True)
 
 print(f"Training history figures saved to: {figure_base}.[png/pdf/svg]")
