@@ -146,7 +146,7 @@ def r2_keras(y_true, y_pred):
     return (1 - SS_res/(SS_tot + tf.keras.backend.epsilon()))
 
 # ==============================================================================
-# 7. Deep Neural Network Experimentation - Enhanced Architecture with R²
+# 7. Deep Neural Network Experimentation
 # ==============================================================================
 print("\n" + "="*60)
 print("--- Starting Enhanced Deep Neural Network Experimentation ---")
@@ -262,7 +262,7 @@ print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
 all_model_results["Deep Neural Network"] = dnn_results
 
 # ==============================================================================
-# 8. Visualization of DNN Training History with R² (Thesis Quality)
+# 8. Visualization of DNN Training
 # ==============================================================================
 
 # Create figure with constrained layout for better spacing
@@ -421,7 +421,7 @@ results_df.to_csv(output_path, index=False)
 print(f"\nResults successfully saved to: {output_path}")
 
 # ==============================================================================
-# 10. Thesis-Quality Model Comparison Visualizations
+# 9.5 Model Comparison Visualizations
 # ==============================================================================
 
 # --- 10.1 Model Performance Comparison Bar Chart ---
