@@ -1,4 +1,5 @@
 # %%
+
 # ==============================================================================
 # 1. Imports
 # ==============================================================================
@@ -83,7 +84,7 @@ def train_and_evaluate_model(model, X_train, y_train, X_test, y_test, model_name
     """
     print(f"\n--- Training {model_name} ---")
     start_time = datetime.now()
-
+    
     if is_keras_model:
         # Keras models require numpy arrays and have a different fit/predict signature
         model.fit(
@@ -98,21 +99,21 @@ def train_and_evaluate_model(model, X_train, y_train, X_test, y_test, model_name
         # Scikit-learn compatible models
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-
+    
     training_time = (datetime.now() - start_time).total_seconds()
     print(f"Training completed in {training_time:.2f} seconds.")
-
+    
     # Post-processing: ensure predictions are non-negative
     y_pred[y_pred < 0] = 0
-
+    
     # Calculate metrics
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
-
+    
     print(f"--- {model_name} Performance ---")
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
-
+    
     return {"model": model, "rmse": rmse, "mae": mae, "r2": r2, "training_time": training_time}
 
 # ==============================================================================
@@ -134,7 +135,18 @@ for name, model in models_to_train.items():
     all_model_results[name] = results
 
 # ==============================================================================
-# 6. Deep Neural Network Experimentation - Enhanced Architecture
+# 6. Custom R² Metric for Keras
+# ==============================================================================
+import tensorflow as tf
+
+def r2_keras(y_true, y_pred):
+    """Custom R² metric for Keras training monitoring"""
+    SS_res = tf.reduce_sum(tf.square(y_true - y_pred))
+    SS_tot = tf.reduce_sum(tf.square(y_true - tf.reduce_mean(y_true)))
+    return (1 - SS_res/(SS_tot + tf.keras.backend.epsilon()))
+
+# ==============================================================================
+# 7. Deep Neural Network Experimentation - Enhanced Architecture with R²
 # ==============================================================================
 print("\n" + "="*60)
 print("--- Starting Enhanced Deep Neural Network Experimentation ---")
@@ -148,9 +160,9 @@ dnn_params = {
     "activations": ["relu", "relu", "relu", "relu", "relu"],
     "l2_lambdas": [1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
     "dropouts": [0.3, 0.25, 0.2, 0.15, 0.1],
-    "learning_rate": 0.0005,  # Slightly lower for more stable training
+    "learning_rate": 0.0005, # Slightly lower for more stable training
     "epochs": 25,
-    "batch_size": 512,  # Larger batch size for stable gradients
+    "batch_size": 512, # Larger batch size for stable gradients
     "early_stopping_patience": 7,
     "reduce_lr_patience": 4
 }
@@ -182,14 +194,14 @@ for i in range(1, dnn_params["num_layers"]):
 # Output layer
 dnn_model.add(layers.Dense(1, kernel_initializer='glorot_normal'))
 
-# --- Compile Model with Advanced Optimizer ---
+# --- Compile Model with Advanced Optimizer and R² Metric ---
 optimizer = keras.optimizers.Adam(
     learning_rate=dnn_params["learning_rate"],
     beta_1=0.9,
     beta_2=0.999,
     epsilon=1e-7
 )
-dnn_model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+dnn_model.compile(optimizer=optimizer, loss='mse', metrics=['mae', r2_keras])
 dnn_model.summary()
 
 # --- Enhanced Training with Callbacks ---
@@ -247,52 +259,51 @@ print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
 all_model_results["Deep Neural Network"] = dnn_results
 
 # ==============================================================================
-# 6.5 Visualization of DNN Training History (Thesis Quality)
+# 8. Visualization of DNN Training History with R² (Thesis Quality)
 # ==============================================================================
 
 # Create figure with constrained layout for better spacing
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), 
-                               constrained_layout=True)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6), constrained_layout=True)
 
 # Custom color palette (colorblind-friendly)
-train_color = '#1f77b4'   # Professional blue
-val_color = '#d62728'     # Distinct red
-grid_color = '#f0f0f0'    # Light gray grid
+train_color = '#1f77b4' # Professional blue
+val_color = '#d62728' # Distinct red
+grid_color = '#f0f0f0' # Light gray grid
 background_color = 'white'
 
 # Apply global styling
 plt.rcParams.update({
-    'font.family': 'serif',          # Thesis-appropriate font
-    'font.size': 12,                 # Base font size
-    'axes.labelpad': 12,             # Axis label padding
-    'axes.edgecolor': 'black',       # Axis edge color
-    'axes.linewidth': 0.8,           # Axis line thickness
+    'font.family': 'serif', # Thesis-appropriate font
+    'font.size': 12, # Base font size
+    'axes.labelpad': 12, # Axis label padding
+    'axes.edgecolor': 'black', # Axis edge color
+    'axes.linewidth': 0.8, # Axis line thickness
 })
 
 # ===== Loss Plot =====
 # Smooth lines with increased thickness and custom styles
-ax1.plot(history.history['loss'], 
-         label='Training Loss', 
+ax1.plot(history.history['loss'],
+         label='Training Loss',
          color=train_color,
          linewidth=3,
          alpha=0.9,
          solid_capstyle='round')
 
-ax1.plot(history.history['val_loss'], 
-         label='Validation Loss', 
+ax1.plot(history.history['val_loss'],
+         label='Validation Loss',
          color=val_color,
          linewidth=3,
          alpha=0.9,
-         linestyle='--',  # Dashed for validation
+         linestyle='--', # Dashed for validation
          dash_capstyle='round')
 
 # Formatting
-ax1.set_title('DNN Training Loss', 
-             fontsize=14, fontweight='bold', pad=15)
+ax1.set_title('DNN Training Loss',
+              fontsize=14, fontweight='bold', pad=15)
 ax1.set_xlabel('Epoch', fontsize=12, labelpad=10)
 ax1.set_ylabel('Loss', fontsize=12, labelpad=10)
-ax1.legend(frameon=True, framealpha=0.9, 
-          facecolor=background_color, edgecolor='gray')
+ax1.legend(frameon=True, framealpha=0.9,
+           facecolor=background_color, edgecolor='gray')
 ax1.grid(True, color=grid_color, linestyle='-', linewidth=0.7)
 
 # Set background and spines
@@ -303,28 +314,28 @@ for spine in ax1.spines.values():
     spine.set_linewidth(0.8)
 
 # ===== MAE Plot =====
-ax2.plot(history.history['mae'], 
-         label='Training MAE', 
+ax2.plot(history.history['mae'],
+         label='Training MAE',
          color=train_color,
          linewidth=3,
          alpha=0.9,
          solid_capstyle='round')
 
-ax2.plot(history.history['val_mae'], 
-         label='Validation MAE', 
+ax2.plot(history.history['val_mae'],
+         label='Validation MAE',
          color=val_color,
          linewidth=3,
          alpha=0.9,
-         linestyle='--',  # Dashed for validation
+         linestyle='--', # Dashed for validation
          dash_capstyle='round')
 
 # Formatting
-ax2.set_title('DNN Training MAE', 
-             fontsize=14, fontweight='bold', pad=15)
+ax2.set_title('DNN Training MAE',
+              fontsize=14, fontweight='bold', pad=15)
 ax2.set_xlabel('Epoch', fontsize=12, labelpad=10)
 ax2.set_ylabel('MAE', fontsize=12, labelpad=10)
-ax2.legend(frameon=True, framealpha=0.9, 
-          facecolor=background_color, edgecolor='gray')
+ax2.legend(frameon=True, framealpha=0.9,
+           facecolor=background_color, edgecolor='gray')
 ax2.grid(True, color=grid_color, linestyle='-', linewidth=0.7)
 
 # Set background and spines
@@ -334,14 +345,41 @@ for spine in ax2.spines.values():
     spine.set_color('black')
     spine.set_linewidth(0.8)
 
-# ===== Final Adjustments =====
-# Set consistent y-axis scaling if needed
-# min_loss = min(min(history.history['loss']), min(history.history['val_loss']))
-# max_loss = max(max(history.history['loss']), max(history.history['val_loss']))
-# ax1.set_ylim(min_loss * 0.95, max_loss * 1.05)
+# ===== R² Plot =====
+ax3.plot(history.history['r2_keras'],
+         label='Training R²',
+         color=train_color,
+         linewidth=3,
+         alpha=0.9,
+         solid_capstyle='round')
 
+ax3.plot(history.history['val_r2_keras'],
+         label='Validation R²',
+         color=val_color,
+         linewidth=3,
+         alpha=0.9,
+         linestyle='--', # Dashed for validation
+         dash_capstyle='round')
+
+# Formatting
+ax3.set_title('DNN Training R²',
+              fontsize=14, fontweight='bold', pad=15)
+ax3.set_xlabel('Epoch', fontsize=12, labelpad=10)
+ax3.set_ylabel('R² Score', fontsize=12, labelpad=10)
+ax3.legend(frameon=True, framealpha=0.9,
+           facecolor=background_color, edgecolor='gray')
+ax3.grid(True, color=grid_color, linestyle='-', linewidth=0.7)
+
+# Set background and spines
+ax3.set_facecolor(background_color)
+for spine in ax3.spines.values():
+    spine.set_visible(True)
+    spine.set_color('black')
+    spine.set_linewidth(0.8)
+
+# ===== Final Adjustments =====
 # Save in multiple formats for thesis publication
-figure_base = os.path.join(FIGURE_DIR, 'enhanced_dnn_training_history')
+figure_base = os.path.join(FIGURE_DIR, 'enhanced_dnn_training_history_with_r2')
 
 # High-resolution PNG
 plt.savefig(figure_base + '.png', dpi=600, bbox_inches='tight')
@@ -350,7 +388,7 @@ plt.savefig(figure_base + '.png', dpi=600, bbox_inches='tight')
 #plt.savefig(figure_base + '.pdf', bbox_inches='tight', transparent=True)
 plt.savefig(figure_base + '.svg', bbox_inches='tight', transparent=True)
 
-print(f"Training history figures saved to: {figure_base}.[png/pdf/svg]")
+print(f"Training history figures saved to: {figure_base}.[png/svg]")
 
 plt.show()
 
