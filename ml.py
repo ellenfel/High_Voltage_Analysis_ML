@@ -152,7 +152,7 @@ print("\n" + "="*60)
 print("--- Starting Enhanced Deep Neural Network Experimentation ---")
 print("="*60)
 
-# --- Enhanced Hyperparameters ---
+# --- Hyperparameters ---
 # Wider and deeper architecture for better feature learning
 dnn_params = {
     "num_layers": 5,
@@ -167,7 +167,7 @@ dnn_params = {
     "reduce_lr_patience": 4
 }
 
-# --- Build Enhanced Model ---
+# --- Build the Model ---
 dnn_model = keras.Sequential([layers.Input(shape=(X_train_scaled.shape[1],))])
 
 # First layer - wider for initial feature extraction
