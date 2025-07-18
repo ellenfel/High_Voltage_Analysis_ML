@@ -17,3 +17,6 @@ data/
 
 #keras model files
 keras_tuner_dir/
+
+# depricated files
+_depricated/
