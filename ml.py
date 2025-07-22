@@ -261,6 +261,122 @@ print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R-squared: {r2:.4f}")
 
 all_model_results["Deep Neural Network"] = dnn_results
 
+
+# ==============================================================================
+# 7.5. Optimized DNN with Pre-Selected Hyperparameters
+# ==============================================================================
+print("\n" + "="*60)
+print("--- Training Optimized DNN with Pre-Selected Hyperparameters ---")
+print("="*60)
+
+# --- Optimized Hyperparameters (from hyperparameter tuning results) ---
+# NOTE: Interpreted 4 layers based on provided units_0 through units_3
+optimized_dnn_params = {
+    "num_layers": 4,
+    "units": [512, 448, 320, 192],
+    "activations": ["relu", "relu", "relu", "tanh"],
+    "l2_lambdas": [5.005115883734732e-05, 0.005496054400493782, 0.0008832783459212954, 0.00013494772704967807],
+    "dropouts": [0.2, 0.30000000000000004, 0.4, 0.30000000000000004],
+    "learning_rate": 0.001,
+    "epochs": 12, # From "tuner/epochs"
+    "batch_size": 64,  # Using a common, robust batch size
+    "early_stopping_patience": 5, # Reasonable default
+    "reduce_lr_patience": 3 # Reasonable default
+}
+
+# --- Build the Optimized Model ---
+optimized_dnn_model = keras.Sequential([layers.Input(shape=(X_train_scaled.shape[1],))])
+
+# Add layers based on optimized parameters
+for i in range(optimized_dnn_params["num_layers"]):
+    optimized_dnn_model.add(layers.Dense(
+        optimized_dnn_params["units"][i],
+        activation=optimized_dnn_params["activations"][i],
+        kernel_regularizer=regularizers.l2(optimized_dnn_params["l2_lambdas"][i]),
+        kernel_initializer='he_normal'
+    ))
+    optimized_dnn_model.add(layers.BatchNormalization())
+    optimized_dnn_model.add(layers.Dropout(optimized_dnn_params["dropouts"][i]))
+
+# Output layer
+optimized_dnn_model.add(layers.Dense(1, kernel_initializer='glorot_normal'))
+
+# --- Compile Optimized Model ---
+optimizer_optimized = keras.optimizers.Adam(
+    learning_rate=optimized_dnn_params["learning_rate"],
+    beta_1=0.9,
+    beta_2=0.999,
+    epsilon=1e-7
+)
+optimized_dnn_model.compile(optimizer=optimizer_optimized, loss='mse', metrics=['mae', r2_keras])
+
+print("Optimized DNN Architecture:")
+optimized_dnn_model.summary()
+
+# --- Enhanced Training with Callbacks ---
+callbacks_optimized = [
+    keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=optimized_dnn_params["early_stopping_patience"],
+        restore_best_weights=True,
+        verbose=1
+    ),
+    keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.5,
+        patience=optimized_dnn_params["reduce_lr_patience"],
+        min_lr=1e-7,
+        verbose=1
+    )
+]
+
+# --- Train Optimized Model ---
+print(f"Training optimized DNN with {optimized_dnn_params['num_layers']} layers...")
+print(f"Architecture: {' -> '.join(map(str, optimized_dnn_params['units']))} -> 1")
+
+start_time_optimized = datetime.now()
+history_optimized = optimized_dnn_model.fit(
+    X_train_scaled, y_train,
+    batch_size=optimized_dnn_params["batch_size"],
+    epochs=optimized_dnn_params["epochs"],
+    validation_split=0.2,
+    callbacks=callbacks_optimized,
+    verbose=1
+)
+
+# --- Evaluate Optimized Model ---
+y_pred_optimized = optimized_dnn_model.predict(X_test_scaled, batch_size=optimized_dnn_params["batch_size"])
+y_pred_optimized = y_pred_optimized.flatten()
+
+# Ensure non-negative predictions
+y_pred_optimized[y_pred_optimized < 0] = 0
+
+# Calculate metrics
+mse_optimized = mean_squared_error(y_test, y_pred_optimized)
+rmse_optimized = np.sqrt(mse_optimized)
+mae_optimized = mean_absolute_error(y_test, y_pred_optimized)
+r2_optimized = r2_score(y_test, y_pred_optimized)
+
+# Store results
+training_time_optimized = (datetime.now() - start_time_optimized).total_seconds()
+optimized_dnn_results = {
+    'rmse': rmse_optimized,
+    'mae': mae_optimized,
+    'r2': r2_optimized,
+    'training_time': training_time_optimized,
+    'predictions': y_pred_optimized,
+    'history': history_optimized.history,
+    'model': optimized_dnn_model # Storing model object for consistency
+}
+
+print(f"\n--- Optimized Deep Neural Network Performance ---")
+print(f"RMSE: {rmse_optimized:.4f}, MAE: {mae_optimized:.4f}, R-squared: {r2_optimized:.4f}")
+print(f"Training completed in {training_time_optimized:.2f} seconds.")
+
+# Add to results dictionary
+all_model_results["Optimized DNN"] = optimized_dnn_results
+
+
 # ==============================================================================
 # 8. Visualization of DNN Training
 # ==============================================================================
@@ -388,7 +504,7 @@ figure_base = os.path.join(FIGURE_DIR, 'enhanced_dnn_training_history_with_r2')
 plt.savefig(figure_base + '.png', dpi=600, bbox_inches='tight')
 
 # Vector formats for publications
-#plt.savefig(figure_base + '.pdf', bbox_inches='tight', transparent=True)
+plt.savefig(figure_base + '.pdf', bbox_inches='tight', transparent=True)
 plt.savefig(figure_base + '.svg', bbox_inches='tight', transparent=True)
 
 print(f"Training history figures saved to: {figure_base}.[png/svg]")
@@ -421,54 +537,55 @@ results_df.to_csv(output_path, index=False)
 print(f"\nResults successfully saved to: {output_path}")
 
 # ==============================================================================
-# 9.5 Model Comparison Visualizations
+# 10. Model Comparison Visualizations
 # ==============================================================================
 
 # --- 10.1 Model Performance Comparison Bar Chart ---
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
 
 # Define professional color palette
-colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#4E6E58']
+# Increased number of colors to accommodate the new model
+colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#4E6E58', '#5A4E6E']
 
 # RMSE Comparison
 bars1 = ax1.bar(results_df['Model'], results_df['RMSE'], color=colors, alpha=0.8)
 ax1.set_title('Model Performance: RMSE', fontsize=14, fontweight='bold', pad=15)
 ax1.set_ylabel('RMSE', fontsize=12)
-ax1.tick_params(axis='x', rotation=45)
+ax1.tick_params(axis='x', rotation=45, labelsize=9) # Adjusted label size for readability
 ax1.grid(True, alpha=0.3, axis='y')
 
 # Add value labels on bars
 for bar in bars1:
     height = bar.get_height()
-    ax1.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-             f'{height:.3f}', ha='center', va='bottom', fontsize=10)
+    ax1.text(bar.get_x() + bar.get_width()/2., height,
+             f'{height:.3f}', ha='center', va='bottom', fontsize=9)
 
-# MAE Comparison  
+# MAE Comparison
 bars2 = ax2.bar(results_df['Model'], results_df['MAE'], color=colors, alpha=0.8)
 ax2.set_title('Model Performance: MAE', fontsize=14, fontweight='bold', pad=15)
 ax2.set_ylabel('MAE', fontsize=12)
-ax2.tick_params(axis='x', rotation=45)
+ax2.tick_params(axis='x', rotation=45, labelsize=9)
 ax2.grid(True, alpha=0.3, axis='y')
 
 # Add value labels on bars
 for bar in bars2:
     height = bar.get_height()
-    ax2.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-             f'{height:.3f}', ha='center', va='bottom', fontsize=10)
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f'{height:.3f}', ha='center', va='bottom', fontsize=9)
 
 # R² Comparison
 bars3 = ax3.bar(results_df['Model'], results_df['R2'], color=colors, alpha=0.8)
 ax3.set_title('Model Performance: R² Score', fontsize=14, fontweight='bold', pad=15)
 ax3.set_ylabel('R² Score', fontsize=12)
-ax3.tick_params(axis='x', rotation=45)
+ax3.tick_params(axis='x', rotation=45, labelsize=9)
 ax3.grid(True, alpha=0.3, axis='y')
-ax3.set_ylim(0, 1)  # R² typically ranges 0-1
+ax3.set_ylim(0, max(1.0, results_df['R2'].max() * 1.1)) # Adjust y-lim dynamically
 
 # Add value labels on bars
 for bar in bars3:
     height = bar.get_height()
-    ax3.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-             f'{height:.3f}', ha='center', va='bottom', fontsize=10)
+    ax3.text(bar.get_x() + bar.get_width()/2., height,
+             f'{height:.3f}', ha='center', va='bottom', fontsize=9)
 
 # Save comparison chart
 comparison_path = os.path.join(FIGURE_DIR, 'model_performance_comparison')
@@ -477,14 +594,15 @@ plt.savefig(comparison_path + '.svg', bbox_inches='tight', transparent=True)
 print(f"Model comparison chart saved to: {comparison_path}.[png/svg]")
 plt.show()
 
+
 # --- 10.2 Prediction vs Actual Scatter Plot (Best Model) ---
 best_model_name = results_df.iloc[0]['Model']
 best_model_results = all_model_results[best_model_name]
 
 fig, ax = plt.subplots(1, 1, figsize=(10, 8), constrained_layout=True)
 
-# Get predictions from best model
-if best_model_name == "Deep Neural Network":
+# Get predictions from best model, using the stored predictions for DNNs
+if 'predictions' in best_model_results:
     y_pred_best = best_model_results['predictions']
 else:
     y_pred_best = best_model_results['model'].predict(X_test_scaled)
@@ -506,9 +624,9 @@ ax.legend(fontsize=12)
 ax.grid(True, alpha=0.3)
 
 # Add R² annotation
-r2_text = f'R² = {best_model_results["r2"]:.4f}'
-ax.text(0.05, 0.95, r2_text, transform=ax.transAxes, fontsize=14, 
-        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+r2_text = f'$R^2 = {best_model_results["r2"]:.4f}$' # Using LaTeX for R^2
+ax.text(0.05, 0.95, r2_text, transform=ax.transAxes, fontsize=14,
+        verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
 # Save scatter plot
 scatter_path = os.path.join(FIGURE_DIR, f'prediction_vs_actual_{best_model_name.lower().replace(" ", "_")}')
@@ -531,18 +649,18 @@ ax1.set_ylabel('Residuals', fontsize=12)
 ax1.grid(True, alpha=0.3)
 
 # Residuals histogram
-ax2.hist(residuals, bins=30, alpha=0.7, color='#F18F01', edgecolor='black', linewidth=0.5)
+ax2.hist(residuals, bins=50, density=True, alpha=0.7, color='#F18F01', edgecolor='black', linewidth=0.5) # Use density=True for norm overlay
 ax2.set_title(f'Residuals Distribution - {best_model_name}', fontsize=14, fontweight='bold', pad=15)
 ax2.set_xlabel('Residuals', fontsize=12)
-ax2.set_ylabel('Frequency', fontsize=12)
+ax2.set_ylabel('Density', fontsize=12)
 ax2.grid(True, alpha=0.3, axis='y')
 
 # Add normal distribution overlay
 from scipy import stats
 mu, sigma = stats.norm.fit(residuals)
 x_norm = np.linspace(residuals.min(), residuals.max(), 100)
-y_norm = stats.norm.pdf(x_norm, mu, sigma) * len(residuals) * (residuals.max() - residuals.min()) / 30
-ax2.plot(x_norm, y_norm, 'r-', linewidth=2, alpha=0.8, label=f'Normal (μ={mu:.3f}, σ={sigma:.3f})')
+y_norm = stats.norm.pdf(x_norm, mu, sigma)
+ax2.plot(x_norm, y_norm, 'r-', linewidth=2, alpha=0.8, label=f'Normal fit ($\\mu={mu:.3f}, \\sigma={sigma:.3f}$)') # LaTeX for mu and sigma
 ax2.legend()
 
 # Save residuals plot

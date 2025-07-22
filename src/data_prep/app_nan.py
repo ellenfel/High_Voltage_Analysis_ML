@@ -81,6 +81,19 @@ print("-" * 30)
 print(f"Columns in DataFrame after filtering: {df.columns.tolist()}")
 print("-" * 30)
 
+# Drop all the rows with NaN values
+df.dropna(inplace=True)
+# Print shape after dropping rows with NaN values
+print(f"Shape of DataFrame after dropping rows with NaN values: {df.shape}")
+print("-" * 30)
+
+# Save the cleaned DataFrame to a new CSV file
+df.to_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/df_cleaned.csv', index=False)
+print("Cleaned DataFrame saved to 'df_cleaned.csv'")
+print("-" * 30)
+
+
+
 
 
 ### DEALING WITH NaN VALUES ###
@@ -139,14 +152,3 @@ print("-" * 30)
 ################################
 ################################
 ################################
-
-# Drop all the rows with NaN values
-df.dropna(inplace=True)
-# Print shape after dropping rows with NaN values
-print(f"Shape of DataFrame after dropping rows with NaN values: {df.shape}")
-print("-" * 30)
-
-# Save the cleaned DataFrame to a new CSV file
-df.to_csv('/home/ellenfel/Desktop/repos/High_Voltage_Analysis_ML/data/df_cleaned.csv', index=False)
-print("Cleaned DataFrame saved to 'df_cleaned.csv'")
-print("-" * 30)
