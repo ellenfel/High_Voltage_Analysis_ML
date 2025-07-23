@@ -152,7 +152,7 @@ print("\n" + "="*60)
 print("--- Starting Enhanced Deep Neural Network Experimentation ---")
 print("="*60)
 
-# --- Hyperparameters ---
+# --- Selected from Hyperparameters ---
 # Wider and deeper architecture for better feature learning
 dnn_params = {
     "num_layers": 5,
