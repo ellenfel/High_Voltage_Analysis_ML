@@ -673,3 +673,41 @@ plt.show()
 print("\n" + "="*80)
 print("All thesis-quality figures have been generated and saved!")
 print("="*80)
+
+# ==============================================================================
+# 11. Save Prediction Data for Trend Analysis
+# ==============================================================================
+
+# Generate unique seed based on timestamp
+from datetime import datetime
+seed = datetime.now().strftime("%Y%m%d_%H%M%S")
+print(f"Saving predictions with seed: {seed}")
+
+# Create results directory
+seed_dir = os.path.join(BASE_DIR, 'data', 'results', seed)
+os.makedirs(seed_dir, exist_ok=True)
+
+# Create DataFrame with actual and predicted values
+predictions_df = pd.DataFrame({
+    'actual': y_test.values
+})
+
+# Add predictions from each model
+for model_name, results in all_model_results.items():
+    if 'predictions' in results:
+        predictions_df[f'{model_name}_pred'] = results['predictions']
+    else:
+        # Generate predictions for traditional ML models
+        y_pred = results['model'].predict(X_test_scaled)
+        y_pred[y_pred < 0] = 0  # Ensure non-negative
+        predictions_df[f'{model_name}_pred'] = y_pred
+
+# Save to CSV
+predictions_path = os.path.join(seed_dir, 'predictions.csv')
+predictions_df.to_csv(predictions_path, index=False)
+print(f"Predictions saved to: {predictions_path}")
+
+# Save model performance summary
+results_path = os.path.join(seed_dir, 'model_results.csv')
+results_df.to_csv(results_path, index=False)
+print(f"Model results saved to: {results_path}")
