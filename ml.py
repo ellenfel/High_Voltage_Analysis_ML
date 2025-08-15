@@ -711,3 +711,146 @@ print(f"Predictions saved to: {predictions_path}")
 results_path = os.path.join(seed_dir, 'model_results.csv')
 results_df.to_csv(results_path, index=False)
 print(f"Model results saved to: {results_path}")
+
+# ==============================================================================
+# 11.1 High-Quality Trend Analysis Charts
+# ==============================================================================
+
+print("\n--- Creating High-Quality Trend Analysis Charts ---")
+
+# Professional color palette (colorblind-friendly)
+trend_colors = {
+    'actual': '#000000',  # Black for actual
+    'Random Forest_pred': '#1f77b4',  # Blue
+    'Gradient Boosting_pred': '#ff7f0e',  # Orange
+    'XGBoost_pred': '#2ca02c',  # Green
+    'LightGBM_pred': '#d62728',  # Red
+    'Deep Neural Network_pred': '#9467bd',  # Purple
+    'Optimized DNN_pred': '#8c564b'  # Brown
+}
+
+# Clean labels for legend
+clean_labels = {
+    'actual': 'Actual Values',
+    'Random Forest_pred': 'Random Forest',
+    'Gradient Boosting_pred': 'Gradient Boosting',
+    'XGBoost_pred': 'XGBoost',
+    'LightGBM_pred': 'LightGBM',
+    'Deep Neural Network_pred': 'Deep Neural Network',
+    'Optimized DNN_pred': 'Optimized DNN'
+}
+
+# --- Main Trend Comparison Chart ---
+fig, ax = plt.subplots(figsize=(16, 10))
+
+# Plot actual values with thicker line
+ax.plot(predictions_df.index, predictions_df['actual'], 
+        color=trend_colors['actual'], 
+        linewidth=3, 
+        label=clean_labels['actual'],
+        alpha=0.9,
+        zorder=10)
+
+# Plot predictions with varying line styles
+line_styles = ['-', '--', '-.', ':', '-', '--']
+pred_columns = [col for col in predictions_df.columns if col.endswith('_pred')]
+
+for i, col in enumerate(pred_columns):
+    ax.plot(predictions_df.index, predictions_df[col],
+            color=trend_colors[col],
+            linewidth=2,
+            linestyle=line_styles[i % len(line_styles)],
+            alpha=0.8,
+            label=clean_labels[col])
+
+ax.set_title('Model Predictions vs Actual Values - Trend Analysis', 
+             fontweight='bold', fontsize=16, pad=20)
+ax.set_xlabel('Test Sample Index', fontweight='bold', fontsize=14)
+ax.set_ylabel('Target Value (ipec_pd)', fontweight='bold', fontsize=14)
+ax.legend(loc='upper left', frameon=True, ncol=2, columnspacing=1.5)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+
+# Save main trend comparison
+main_trend_path = os.path.join(FIGURE_DIR, 'model_predictions_trend_comparison')
+plt.savefig(main_trend_path + '.png', dpi=600, bbox_inches='tight')
+plt.savefig(main_trend_path + '.pdf', bbox_inches='tight')
+print(f"Main trend comparison saved to: {main_trend_path}.[png/pdf]")
+plt.show()
+
+# --- Individual Model Comparison Subplots ---
+fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+axes = axes.flatten()
+
+for i, col in enumerate(pred_columns):
+    ax = axes[i]
+    
+    # Plot actual vs predicted for each model
+    ax.plot(predictions_df.index, predictions_df['actual'], 
+            color='#000000', 
+            linewidth=2.5, 
+            label='Actual',
+            alpha=0.9)
+    
+    ax.plot(predictions_df.index, predictions_df[col],
+            color=trend_colors[col],
+            linewidth=2,
+            label=clean_labels[col],
+            alpha=0.8)
+    
+    # Calculate R² for title
+    r2 = r2_score(predictions_df['actual'], predictions_df[col])
+    
+    ax.set_title(f'{clean_labels[col]} vs Actual (R² = {r2:.4f})', 
+                fontweight='bold', fontsize=12)
+    ax.set_xlabel('Test Sample Index', fontsize=10)
+    ax.set_ylabel('Target Value', fontsize=10)
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+plt.suptitle('Individual Model Performance Comparison', 
+             fontsize=16, fontweight='bold', y=0.98)
+plt.tight_layout()
+
+# Save individual comparison
+individual_path = os.path.join(FIGURE_DIR, 'individual_model_trends')
+plt.savefig(individual_path + '.png', dpi=600, bbox_inches='tight')
+plt.savefig(individual_path + '.pdf', bbox_inches='tight')
+print(f"Individual model trends saved to: {individual_path}.[png/pdf]")
+plt.show()
+
+# --- Residuals Trend Analysis ---
+fig, ax = plt.subplots(figsize=(16, 8))
+
+# Calculate and plot residuals for each model
+for i, col in enumerate(pred_columns):
+    residuals = predictions_df['actual'] - predictions_df[col]
+    ax.plot(predictions_df.index, residuals,
+            color=trend_colors[col],
+            linewidth=1.5,
+            alpha=0.7,
+            label=f'{clean_labels[col]} Residuals')
+
+# Add zero line
+ax.axhline(y=0, color='black', linestyle='-', linewidth=2, alpha=0.8)
+
+ax.set_title('Model Residuals Trend Analysis (Actual - Predicted)', 
+             fontweight='bold', fontsize=16, pad=20)
+ax.set_xlabel('Test Sample Index', fontweight='bold', fontsize=14)
+ax.set_ylabel('Residuals', fontweight='bold', fontsize=14)
+ax.legend(loc='upper left', ncol=2)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+
+# Save residuals trend
+residuals_path = os.path.join(FIGURE_DIR, 'residuals_trend_analysis')
+plt.savefig(residuals_path + '.png', dpi=600, bbox_inches='tight')
+plt.savefig(residuals_path + '.pdf', bbox_inches='tight')
+print(f"Residuals trend analysis saved to: {residuals_path}.[png/pdf]")
+plt.show()
+
+print("\n" + "="*60)
+print("TREND ANALYSIS COMPLETE - All charts saved!")
+print("="*60)
