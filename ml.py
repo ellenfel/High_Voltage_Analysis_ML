@@ -675,7 +675,7 @@ print("All thesis-quality figures have been generated and saved!")
 print("="*80)
 
 # ==============================================================================
-# 11. Save Prediction Data for Trend Analysis
+# 11. Save Prediction Data and Create Trend Analysis
 # ==============================================================================
 
 # Generate unique seed based on timestamp
@@ -713,10 +713,11 @@ results_df.to_csv(results_path, index=False)
 print(f"Model results saved to: {results_path}")
 
 # ==============================================================================
-# 11.1 High-Quality Trend Analysis Charts
+# 12. High-Quality Trend Analysis Charts
 # ==============================================================================
 
 print("\n--- Creating High-Quality Trend Analysis Charts ---")
+print(f"Processing {len(predictions_df)} test samples...")
 
 # Professional color palette (colorblind-friendly)
 trend_colors = {
@@ -740,6 +741,8 @@ clean_labels = {
     'Optimized DNN_pred': 'Optimized DNN'
 }
 
+pred_columns = [col for col in predictions_df.columns if col.endswith('_pred')]
+
 # --- Main Trend Comparison Chart ---
 fig, ax = plt.subplots(figsize=(16, 10))
 
@@ -753,7 +756,6 @@ ax.plot(predictions_df.index, predictions_df['actual'],
 
 # Plot predictions with varying line styles
 line_styles = ['-', '--', '-.', ':', '-', '--']
-pred_columns = [col for col in predictions_df.columns if col.endswith('_pred')]
 
 for i, col in enumerate(pred_columns):
     ax.plot(predictions_df.index, predictions_df[col],
@@ -779,48 +781,64 @@ plt.savefig(main_trend_path + '.pdf', bbox_inches='tight')
 print(f"Main trend comparison saved to: {main_trend_path}.[png/pdf]")
 plt.show()
 
-# --- Individual Model Comparison Subplots ---
-fig, axes = plt.subplots(2, 3, figsize=(20, 12))
-axes = axes.flatten()
+# --- Individual Wide Trend Charts for Large Dataset ---
+print("\n--- Creating Individual Wide Trend Charts ---")
 
-for i, col in enumerate(pred_columns):
-    ax = axes[i]
+for col in pred_columns:
+    print(f"Creating chart for {clean_labels[col]}...")
     
-    # Plot actual vs predicted for each model
+    # Extra wide figure for large dataset
+    fig, ax = plt.subplots(figsize=(24, 8))  # Much wider for 160k samples
+    
+    # Plot actual values
     ax.plot(predictions_df.index, predictions_df['actual'], 
             color='#000000', 
-            linewidth=2.5, 
-            label='Actual',
-            alpha=0.9)
-    
-    ax.plot(predictions_df.index, predictions_df[col],
-            color=trend_colors[col],
-            linewidth=2,
-            label=clean_labels[col],
+            linewidth=1.5,  # Thinner for large dataset
+            label='Actual Values',
             alpha=0.8)
     
-    # Calculate R² for title
-    r2 = r2_score(predictions_df['actual'], predictions_df[col])
+    # Plot specific model prediction
+    ax.plot(predictions_df.index, predictions_df[col],
+            color=trend_colors[col],
+            linewidth=1.2,  # Thinner for large dataset
+            label=clean_labels[col],
+            alpha=0.9)
     
-    ax.set_title(f'{clean_labels[col]} vs Actual (R² = {r2:.4f})', 
-                fontweight='bold', fontsize=12)
-    ax.set_xlabel('Test Sample Index', fontsize=10)
-    ax.set_ylabel('Target Value', fontsize=10)
-    ax.legend(fontsize=9)
+    # Calculate metrics for title
+    r2 = r2_score(predictions_df['actual'], predictions_df[col])
+    rmse = np.sqrt(mean_squared_error(predictions_df['actual'], predictions_df[col]))
+    mae = mean_absolute_error(predictions_df['actual'], predictions_df[col])
+    
+    # Title with metrics
+    ax.set_title(f'{clean_labels[col]} vs Actual Values\n'
+                 f'R² = {r2:.4f}, RMSE = {rmse:.2f}, MAE = {mae:.2f}', 
+                fontweight='bold', fontsize=16, pad=20)
+    
+    ax.set_xlabel('Test Sample Index', fontweight='bold', fontsize=14)
+    ax.set_ylabel('Target Value (ipec_pd)', fontweight='bold', fontsize=14)
+    ax.legend(loc='upper right', fontsize=12)
     ax.grid(True, alpha=0.3)
-
-plt.suptitle('Individual Model Performance Comparison', 
-             fontsize=16, fontweight='bold', y=0.98)
-plt.tight_layout()
-
-# Save individual comparison
-individual_path = os.path.join(FIGURE_DIR, 'individual_model_trends')
-plt.savefig(individual_path + '.png', dpi=600, bbox_inches='tight')
-plt.savefig(individual_path + '.pdf', bbox_inches='tight')
-print(f"Individual model trends saved to: {individual_path}.[png/pdf]")
-plt.show()
+    
+    # Improve readability for large dataset
+    ax.tick_params(axis='x', labelsize=11)
+    ax.tick_params(axis='y', labelsize=11)
+    
+    plt.tight_layout()
+    
+    # Save individual wide chart
+    model_filename = col.replace(' ', '_').replace('_pred', '').lower()
+    individual_wide_path = os.path.join(FIGURE_DIR, f'trend_{model_filename}_wide')
+    plt.savefig(individual_wide_path + '.png', dpi=300, bbox_inches='tight')  # 300 DPI for speed with large data
+    plt.savefig(individual_wide_path + '.pdf', bbox_inches='tight')
+    
+    print(f"Wide trend chart saved to: {individual_wide_path}.[png/pdf]")
+    plt.show()
+    
+    # Clear memory
+    plt.close()
 
 # --- Residuals Trend Analysis ---
+print("\n--- Creating Residuals Analysis ---")
 fig, ax = plt.subplots(figsize=(16, 8))
 
 # Calculate and plot residuals for each model
@@ -852,5 +870,11 @@ print(f"Residuals trend analysis saved to: {residuals_path}.[png/pdf]")
 plt.show()
 
 print("\n" + "="*60)
-print("TREND ANALYSIS COMPLETE - All charts saved!")
+print("ALL TREND ANALYSIS COMPLETE!")
+print("="*60)
+print("Generated Charts:")
+print("  • Main trend comparison (all models)")
+print("  • Individual wide charts (6 separate files)")
+print("  • Residuals analysis") 
+print(f"Total test samples: {len(predictions_df):,}")
 print("="*60)
