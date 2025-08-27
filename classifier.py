@@ -3,6 +3,7 @@
 # ==============================================================================
 # 1. Imports
 # ==============================================================================
+# Improvement: Consider lazy imports for unused models to reduce startup time.
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,7 +28,9 @@ from lightgbm import LGBMClassifier
 # ==============================================================================
 # 2. Configuration
 # ==============================================================================
-# Suppress warnings for cleaner output
+# Sets up project paths, creates necessary directories, and configures plotting styles.
+# Suppresses warnings for cleaner output during model training.
+# Improvement: Consider using environment variables or config files for paths.
 warnings.filterwarnings('ignore')
 
 # --- Path Constants ---
@@ -47,6 +50,8 @@ FIGURE_DPI = 300 # High resolution for thesis
 # ==============================================================================
 # 3. Data Loading and Preparation
 # ==============================================================================
+# Loads data, creates binary classification target, splits into train/test sets, and scales features.
+# Creates dummy data if the real dataset doesn't exist for demonstration purposes.
 print("--- Loading and Preparing Data ---")
 # Create a dummy CSV file if it doesn't exist for demonstration purposes
 dummy_csv_path = os.path.join(BASE_DIR, 'data/df_ml_ready.csv')
@@ -97,6 +102,9 @@ print("\nFeatures scaled using StandardScaler.")
 # ==============================================================================
 # 4. Universal Model Training and Evaluation Function
 # ==============================================================================
+# Defines a reusable function to train any classifier and evaluate its performance.
+# Handles models with and without predict_proba method (like LinearSVC).
+# Improvement: Add cross-validation and early stopping for better model selection.
 def train_and_evaluate_classifier(model, X_train, y_train, X_test, y_test, model_name="Model"):
     """
     Trains a classification model, evaluates its performance, and returns the results.
@@ -143,6 +151,8 @@ def train_and_evaluate_classifier(model, X_train, y_train, X_test, y_test, model
 # ==============================================================================
 # 5. Train and Evaluate Classification Models
 # ==============================================================================
+# Defines multiple ML models with appropriate hyperparameters and trains them.
+# Uses a diverse set of algorithms: SVM, tree-based methods, and gradient boosting.
 all_model_results = {}
 
 # --- Define Models ---
@@ -163,6 +173,9 @@ for name, model in models_to_train.items():
 # ==============================================================================
 # 6. Final Results Comparison and Export
 # ==============================================================================
+# Compiles all model results into a comparison DataFrame and exports to CSV.
+# Ranks models by F1-Score to identify the best performing classifier.
+# Improvement: Add statistical significance tests to compare model performance.
 print("\n--- Comparing Final Classification Model Performance ---")
 results_df = pd.DataFrame({
     'Model': list(all_model_results.keys()),
@@ -184,94 +197,35 @@ results_df.to_csv(output_path, index=False)
 print(f"\nResults successfully saved to: {output_path}")
 
 # ==============================================================================
-# 7. Classification Model Comparison Visualizations
+# 7. Classification Model Analysis and Visualization
 # ==============================================================================
+# Creates confusion matrix as DataFrame and generates ROC curve comparison plot.
+# Focuses on essential visualizations for model performance assessment.
+# Improvement: Add precision-recall curves for imbalanced datasets.
 
-# --- 7.1 Model Performance Comparison Bar Chart ---
-fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12), constrained_layout=True)
-fig.suptitle('Model Performance Metrics Comparison', fontsize=18, fontweight='bold')
-
-# Define professional color palette
-colors = sns.color_palette("viridis", len(results_df))
-
-def create_bar_chart(ax, metric, data, title):
-    bars = ax.bar(data['Model'], data[metric], color=colors, alpha=0.8)
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
-    ax.set_ylabel(metric, fontsize=12)
-    ax.tick_params(axis='x', rotation=45, labelsize=10, ha="right")
-    ax.grid(True, alpha=0.3, axis='y')
-    ax.set_ylim(bottom=max(0, data[metric].min() * 0.95), top=data[metric].max() * 1.1)
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height,
-                 f'{height:.3f}', ha='center', va='bottom', fontsize=9)
-
-create_bar_chart(ax1, 'Accuracy', results_df, 'Accuracy Comparison')
-create_bar_chart(ax2, 'F1-Score', results_df, 'F1-Score Comparison')
-create_bar_chart(ax3, 'Precision', results_df, 'Precision Comparison')
-create_bar_chart(ax4, 'Recall', results_df, 'Recall Comparison')
-
-
-# Save comparison chart
-comparison_path = os.path.join(FIGURE_DIR, 'classification_model_performance_comparison')
-plt.savefig(comparison_path + '.png', dpi=FIGURE_DPI, bbox_inches='tight')
-plt.savefig(comparison_path + '.svg', bbox_inches='tight', transparent=True)
-print(f"\nModel comparison chart saved to: {comparison_path}.[png/svg]")
-plt.show()
-
-# --- 7.2 Confusion Matrix for Best Model ---
+# --- 7.1 Confusion Matrix for Best Model as DataFrame ---
 best_model_name = results_df.iloc[0]['Model']
 best_model_results = all_model_results[best_model_name]
 y_pred_best = best_model_results['predictions']
 
-fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-
+# Create confusion matrix as DataFrame and save to CSV
 cm = confusion_matrix(y_test, y_pred_best)
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
-            xticklabels=['No PD (0)', 'PD Present (1)'],
-            yticklabels=['No PD (0)', 'PD Present (1)'],
-            annot_kws={"size": 14})
+cm_df = pd.DataFrame(cm, 
+                     index=['Actual_No_PD', 'Actual_PD'], 
+                     columns=['Predicted_No_PD', 'Predicted_PD'])
 
-ax.set_title(f'Confusion Matrix - {best_model_name}', fontsize=16, fontweight='bold', pad=20)
-ax.set_xlabel('Predicted Label', fontsize=14)
-ax.set_ylabel('True Label', fontsize=14)
+cm_csv_path = os.path.join(RESULTS_DIR, f'confusion_matrix_{best_model_name.lower().replace(" ", "_")}.csv')
+cm_df.to_csv(cm_csv_path)
+print(f"Confusion matrix for '{best_model_name}' saved to: {cm_csv_path}")
+print(f"\nConfusion Matrix - {best_model_name}:")
+print(cm_df)
 
-cm_path = os.path.join(FIGURE_DIR, f'confusion_matrix_{best_model_name.lower().replace(" ", "_")}')
-plt.savefig(cm_path + '.png', dpi=FIGURE_DPI, bbox_inches='tight')
-plt.savefig(cm_path + '.svg', bbox_inches='tight', transparent=True)
-print(f"Confusion matrix for '{best_model_name}' saved to: {cm_path}.[png/svg]")
-plt.show()
-
-# --- 7.3 Classification Report ---
+# --- 7.2 Classification Report ---
 print(f"\n--- Detailed Classification Report for {best_model_name} ---")
 report = classification_report(y_test, y_pred_best, target_names=['No PD (0)', 'PD Present (1)'])
 print(report)
 
-# --- 7.4 Feature Importance of Best Tree-Based Model ---
-best_model_obj = best_model_results.get('model')
-if hasattr(best_model_obj, 'feature_importances_'):
-    print(f"\n--- Feature Importance for {best_model_name} ---")
-    feature_importances = pd.DataFrame({
-        'Feature': X.columns,
-        'Importance': best_model_obj.feature_importances_
-    }).sort_values(by='Importance', ascending=False)
-
-    plt.figure(figsize=(12, 8))
-    sns.barplot(x='Importance', y='Feature', data=feature_importances.head(20), palette='viridis_r')
-    plt.title(f'Top 20 Feature Importances - {best_model_name}', fontsize=16, fontweight='bold')
-    plt.xlabel('Importance Score', fontsize=12)
-    plt.ylabel('Features', fontsize=12)
-    plt.tight_layout()
-
-    fi_path = os.path.join(FIGURE_DIR, f'feature_importance_{best_model_name.lower().replace(" ", "_")}')
-    plt.savefig(fi_path + '.png', dpi=FIGURE_DPI, bbox_inches='tight')
-    print(f"Feature importance plot saved to: {fi_path}.png")
-    plt.show()
-else:
-    print(f"\nFeature importance plot is not available for '{best_model_name}' (it's not a tree-based model).")
-
-
-# --- 7.5 ROC Curve and AUC Score Comparison ---
+# --- 7.3 ROC Curve and AUC Score Comparison ---
 print("\n--- Generating ROC Curve Comparison ---")
 plt.figure(figsize=(10, 8))
 
@@ -292,17 +246,19 @@ plt.legend(loc='lower right', fontsize=10)
 plt.grid(True)
 plt.tight_layout()
 
-# Save ROC curve plot
-roc_path = os.path.join(FIGURE_DIR, 'roc_curve_comparison')
-plt.savefig(roc_path + '.png', dpi=FIGURE_DPI, bbox_inches='tight')
-plt.savefig(roc_path + '.svg', bbox_inches='tight', transparent=True)
-print(f"ROC curve comparison plot saved to: {roc_path}.[png/svg]")
+# Save ROC curve plot (PNG only)
+roc_path = os.path.join(FIGURE_DIR, 'roc_curve_comparison.png')
+plt.savefig(roc_path, dpi=FIGURE_DPI, bbox_inches='tight')
+print(f"ROC curve comparison plot saved to: {roc_path}")
 plt.show()
 
 
 # ==============================================================================
 # 8. Script Completion
 # ==============================================================================
+# Cleanup memory and signals successful completion of the analysis pipeline.
+# Garbage collection helps free up memory after processing large datasets.
+# Improvement: Add logging system to track execution time and resource usage.
 print("\n" + "="*60)
 print("--- Analysis Script Completed Successfully ---")
 print("="*60)
